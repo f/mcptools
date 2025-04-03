@@ -74,7 +74,7 @@ The binary will be installed as `mcptools` but can be aliased to `mcpt` for conv
 make build && make install
 ```
 
-The binary will be installed as `mcptools` but can be aliased to `mcpt` for convenience.
+The binary will be installed as `mcp` but can be aliased to `mcpt` for convenience.
 
 ## Uninstalling
 
