@@ -71,7 +71,7 @@ The binary will be installed as `mcptools` but can be aliased to `mcpt` for conv
 ## Building and Installing From Source
 
 ```bash
-make build && sudo make install
+make build && make install
 ```
 
 The binary will be installed as `mcptools` but can be aliased to `mcpt` for convenience.
@@ -104,7 +104,7 @@ MCP Tools supports a wide range of features for interacting with MCP servers:
 ```
 Usage:
   mcp [command]
-  
+
 Available Commands:
   alias          Manage MCP server aliases
   call           Call a tool, resource, or prompt on the MCP server
@@ -116,7 +116,7 @@ Available Commands:
   shell          Start an interactive shell for MCP commands
   tools          List available tools on the MCP server
   version        Print the version information
-  
+
 Flags:
   -f, --format string   Output format (table, json, pretty) (default "table")
   -h, --help            Help for mcp
@@ -175,6 +175,7 @@ edit_file(edits:{newText:str,oldText:str}[], path:str)
 ```
 
 Key features of the format:
+
 - Function names are displayed in bold cyan
 - Required parameters are shown in green (e.g., `path:str`)
 - Optional parameters are shown in yellow brackets (e.g., `[limit:int]`)
