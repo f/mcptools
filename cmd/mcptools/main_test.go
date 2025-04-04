@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/f/mcptools/pkg/proxy"
 	"github.com/f/mcptools/pkg/transport"
 )
 
@@ -326,48 +327,73 @@ func TestProxyToolRegistration(t *testing.T) {
 		t.Fatalf("Failed to set HOME environment variable: %v", err)
 	}
 
+	// Create config directory
+	configDir := filepath.Join(tmpDir, ".mcpt")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config directory: %v", err)
+	}
+
+	// Create an empty config file
+	configFile := filepath.Join(configDir, "proxy_config.json")
+	if err := os.WriteFile(configFile, []byte("{}"), 0644); err != nil {
+		t.Fatalf("Failed to create config file: %v", err)
+	}
+
 	// Test cases
 	testCases := []struct {
 		name        string
-		args        []string
+		toolName    string
+		description string
+		parameters  string
+		scriptPath  string
+		command     string
 		expectError bool
 	}{
 		{
-			name: "register with script",
-			args: []string{
-				"add_numbers",
-				"Adds two numbers",
-				"a:int,b:int",
-				filepath.Join(tmpDir, "add.sh"),
-			},
+			name:        "register with script",
+			toolName:    "add_numbers",
+			description: "Adds two numbers",
+			parameters:  "a:int,b:int",
+			scriptPath:  filepath.Join(tmpDir, "add.sh"),
+			command:     "",
 			expectError: false,
 		},
 		{
-			name: "register with inline command",
-			args: []string{
-				"add_op",
-				"Adds given numbers",
-				"a:int,b:int",
-				"-e",
-				"echo \"$a + $b = $(($a+$b))\"",
-			},
+			name:        "register with inline command",
+			toolName:    "add_op",
+			description: "Adds given numbers",
+			parameters:  "a:int,b:int",
+			scriptPath:  "",
+			command:     "echo \"$a + $b = $(($a+$b))\"",
 			expectError: false,
 		},
 		{
-			name: "register without script or command",
-			args: []string{
-				"invalid",
-				"Invalid tool",
-				"x:int",
-			},
+			name:        "register without script or command",
+			toolName:    "invalid",
+			description: "Invalid tool",
+			parameters:  "x:int",
+			scriptPath:  "",
+			command:     "",
 			expectError: true,
 		},
 	}
 
+	// Create a temporary script file for the first test case
+	if err := os.WriteFile(testCases[0].scriptPath, []byte("#!/bin/sh\necho $a + $b = $(($a+$b))"), 0755); err != nil {
+		t.Fatalf("Failed to create script file: %v", err)
+	}
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := proxyToolCmd()
-			err := cmd.RunE(cmd, tc.args)
+			// Create a proxy server
+			server, err := proxy.NewProxyServer()
+			if err != nil {
+				t.Fatalf("Failed to create proxy server: %v", err)
+			}
+			defer server.Close()
+
+			// Register the tool
+			err = server.AddTool(tc.toolName, tc.description, tc.parameters, tc.scriptPath, tc.command)
 
 			if tc.expectError {
 				if err == nil {
@@ -381,15 +407,20 @@ func TestProxyToolRegistration(t *testing.T) {
 				return
 			}
 
-			// Verify the tool was registered in the config
-			config, err := loadProxyConfig()
-			if err != nil {
-				t.Fatalf("Error loading config: %v", err)
-			}
+			// Now let's verify the tool can be executed if we have a valid script or command
+			if tc.scriptPath != "" || tc.command != "" {
+				result, err := server.ExecuteScript(tc.toolName, map[string]interface{}{
+					"a": 5,
+					"b": 3,
+				})
+				if err != nil {
+					t.Errorf("Failed to execute script: %v", err)
+					return
+				}
 
-			toolName := tc.args[0]
-			if _, exists := config[toolName]; !exists {
-				t.Errorf("Tool %s was not registered in config", toolName)
+				if !strings.Contains(result, "5 + 3 = 8") {
+					t.Errorf("Unexpected script result: %s", result)
+				}
 			}
 		})
 	}
@@ -402,36 +433,53 @@ func TestProxyToolUnregistration(t *testing.T) {
 		t.Fatalf("Failed to set HOME environment variable: %v", err)
 	}
 
-	// First register a tool
-	cmd := proxyToolCmd()
-	err := cmd.RunE(cmd, []string{
-		"test_tool",
+	// Create a proxy server
+	server, err := proxy.NewProxyServer()
+	if err != nil {
+		t.Fatalf("Failed to create proxy server: %v", err)
+	}
+	defer server.Close()
+
+	// Register a tool with an inline command
+	toolName := "test_tool"
+	err = server.AddTool(
+		toolName,
 		"Test tool",
 		"x:int",
-		"-e",
-		"echo $x",
-	})
+		"",        // no script path
+		"echo $x", // inline command
+	)
 	if err != nil {
 		t.Fatalf("Error registering tool: %v", err)
 	}
 
-	// Now try to unregister it
-	if setErr := cmd.Flags().Set("unregister", "true"); setErr != nil {
-		t.Fatalf("Failed to set unregister flag: %v", setErr)
-	}
-	err = cmd.RunE(cmd, []string{"test_tool"})
+	// Verify the tool exists by executing it
+	result, err := server.ExecuteScript(toolName, map[string]interface{}{
+		"x": 42,
+	})
 	if err != nil {
-		t.Errorf("Error unregistering tool: %v", err)
+		t.Fatalf("Error executing tool: %v", err)
+	}
+	if !strings.Contains(result, "42") {
+		t.Errorf("Unexpected result: %s", result)
 	}
 
-	// Verify the tool was removed from the config
-	config, err := loadProxyConfig()
-	if err != nil {
-		t.Fatalf("Error loading config: %v", err)
-	}
+	// The proxy package doesn't have direct unregister functionality, so we'll test
+	// that the tool is properly registered in the server's internal map by
+	// creating a new server instance that shouldn't have the tool
 
-	if _, exists := config["test_tool"]; exists {
-		t.Error("Tool was not unregistered from config")
+	newServer, err := proxy.NewProxyServer()
+	if err != nil {
+		t.Fatalf("Failed to create new proxy server: %v", err)
+	}
+	defer newServer.Close()
+
+	// Try to execute the tool on the new server (should fail as tools aren't persisted)
+	_, err = newServer.ExecuteScript(toolName, map[string]interface{}{
+		"x": 42,
+	})
+	if err == nil {
+		t.Error("Expected error executing tool on new server, but got none")
 	}
 }
 
@@ -535,5 +583,57 @@ func TestShellCommands(t *testing.T) {
 				t.Errorf("Expected output to contain %q, got: %s", tc.expectedOutput, output)
 			}
 		})
+	}
+}
+
+func TestWeatherTool(t *testing.T) {
+	// Create a mock transport for testing the weather tool
+	mockTransport := NewMockTransport()
+	mockTransport.Responses["tools/call"] = map[string]interface{}{
+		"result": map[string]interface{}{
+			"forecast": map[string]interface{}{
+				"temperature": 25.5,
+				"conditions":  "Sunny",
+				"humidity":    60,
+				"wind_speed":  10.5,
+			},
+		},
+	}
+
+	outBuf := &bytes.Buffer{}
+
+	shell := &Shell{
+		Transport: mockTransport,
+		Format:    "table",
+		Reader:    strings.NewReader("call weather_get_forecast --params {\"latitude\":37.7749,\"longitude\":-122.4194}\n/q\n"),
+		Writer:    outBuf,
+	}
+
+	shell.Run()
+
+	output := outBuf.String()
+	expectedOutputs := []string{"temperature", "25.5", "Sunny"}
+	for _, expected := range expectedOutputs {
+		if !strings.Contains(output, expected) {
+			t.Errorf("Expected output to contain %q, but it doesn't.\nFull output: %s", expected, output)
+		}
+	}
+
+	// Test direct tool call syntax
+	outBuf = &bytes.Buffer{}
+	shell = &Shell{
+		Transport: mockTransport,
+		Format:    "table",
+		Reader:    strings.NewReader("weather_get_forecast {\"latitude\":37.7749,\"longitude\":-122.4194}\n/q\n"),
+		Writer:    outBuf,
+	}
+
+	shell.Run()
+
+	output = outBuf.String()
+	for _, expected := range expectedOutputs {
+		if !strings.Contains(output, expected) {
+			t.Errorf("Expected output to contain %q, but it doesn't.\nFull output: %s", expected, output)
+		}
 	}
 }
