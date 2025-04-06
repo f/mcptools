@@ -26,6 +26,16 @@ install-templates:
 	mkdir -p $(HOME)/.mcpt/templates
 	cp -r $(CURDIR)/templates/* $(HOME)/.mcpt/templates/
 
+install:
+	@echo "$(YELLOW)Installing $(BINARY_NAME)...$(NC)"
+	sudo install bin/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)
+	sudo ln -s /usr/local/bin/$(BINARY_NAME) /usr/local/bin/$(ALIAS_NAME)
+
+uninstall:
+	@echo "$(YELLOW)Uninstalling $(BINARY_NAME)...$(NC)"
+	sudo rm -f /usr/local/bin/$(BINARY_NAME)
+	sudo rm -f /usr/local/bin/$(ALIAS_NAME)
+
 test: check-go
 	@echo "$(YELLOW)Running tests...$(NC)"
 	go test -v ./...
