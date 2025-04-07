@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./.github/resources/logo.png" alt="MCP Tools" height="300">
+  <img src="./.github/resources/logo.png" alt="MCP Tools" >
 </p>
 
 # MCP Tools CLI
