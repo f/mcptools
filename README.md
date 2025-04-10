@@ -34,6 +34,7 @@
 - [Server Modes](#server-modes)
   - [Mock Server Mode](#mock-server-mode)
   - [Proxy Mode](#proxy-mode)
+  - [Guard Mode](#guard-mode)
 - [Examples](#examples)
   - [Basic Usage](#basic-usage)
   - [Script Integration](#script-integration)
@@ -564,6 +565,84 @@ mcp proxy tool count_lines "Counts lines in a file" "file:string" -e "wc -l < \"
 - The proxy server logs all requests and responses to `~/.mcpt/logs/proxy.log`
 - Use `--unregister` to remove a tool from the configuration
 
+### Guard Mode
+
+The guard mode allows you to restrict access to specific tools, prompts, and resources based on pattern matching. This is useful for security purposes when:
+
+- Restricting potentially dangerous operations (file writes, deletions, etc.)
+- Limiting the capabilities of AI assistants or applications 
+- Providing read-only access to sensitive systems
+- Creating sandboxed environments for testing or demonstrations
+
+```bash
+# Allow only file reading operations, deny file modifications
+mcp guard --allow tools:read_* --deny tools:write_*,create_*,delete_* npx -y @modelcontextprotocol/server-filesystem ~
+
+# Permit only a single specific tool
+mcp guard --allow tools:search_files npx -y @modelcontextprotocol/server-filesystem ~
+
+# Restrict by both tool type and prompt type
+mcp guard --allow tools:read_*,prompts:system_* --deny tools:execute_* npx -y @modelcontextprotocol/server-filesystem ~
+```
+
+#### How It Works
+
+The guard command works by:
+1. Creating a proxy that sits between the client and the MCP server
+2. Intercepting and filtering all requests to `tools/list`, `prompts/list`, and `resources/list`
+3. Preventing calls to tools, prompts, or resources that don't match the allowed patterns
+4. Passing through all other requests and responses unchanged
+
+#### Pattern Matching
+
+Patterns use simple glob syntax with `*` as a wildcard:
+
+- `tools:read_*` - Matches all tools starting with "read_"
+- `tools:*file*` - Matches any tool with "file" in the name
+- `prompts:system_*` - Matches all prompts starting with "system_"
+
+For each entity type, you can specify:
+- `--allow pattern1,pattern2,...` - Only allow entities matching these patterns
+- `--deny pattern1,pattern2,...` - Remove entities matching these patterns
+
+If no allow patterns are specified, all entities are allowed by default (except those matching deny patterns).
+
+#### Application Integration
+
+You can use the guard command to secure MCP configurations in applications. For example, to restrict a file system server to only allow read operations, change:
+
+```json
+"filesystem": {
+  "command": "npx",
+  "args": [
+    "-y",
+    "@modelcontextprotocol/server-filesystem",
+    "/Users/fka/Desktop"
+  ]
+}
+```
+
+To:
+
+```json
+"filesystem": {
+  "command": "mcp",
+  "args": [
+    "guard", "--deny", "tools:write_*,create_*,move_*,delete_*",
+    "npx", "-y", "@modelcontextprotocol/server-filesystem",
+    "/Users/fka/Desktop"
+  ]
+}
+```
+
+This provides a read-only view of the filesystem by preventing any modification operations.
+
+#### Logging
+
+- Guard operations are logged to `~/.mcpt/logs/guard.log`
+- The log includes all requests, responses, and filtering decisions
+- Use `tail -f ~/.mcpt/logs/guard.log` to monitor activity in real-time
+
 ## Examples
 
 ### Basic Usage
@@ -578,6 +657,16 @@ Call a tool with pretty JSON output:
 
 ```bash
 mcp call read_file --params '{"path":"README.md"}' --format pretty npx -y @modelcontextprotocol/server-filesystem ~
+```
+
+Use the guard mode to filter available tools:
+
+```bash
+# Only allow file search functionality
+mcp guard --allow tools:search_files npx -y @modelcontextprotocol/server-filesystem ~
+
+# Create a read-only environment
+mcp guard --deny tools:write_*,delete_*,create_*,move_* npx -y @modelcontextprotocol/server-filesystem ~
 ```
 
 ### Script Integration

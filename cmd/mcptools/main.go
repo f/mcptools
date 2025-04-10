@@ -39,6 +39,7 @@ func main() {
 		commands.AliasCmd(),
 		commands.ConfigsCmd(),
 		commands.NewCmd(),
+		commands.GuardCmd(),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
