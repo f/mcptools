@@ -352,6 +352,116 @@ Once started, you can access the interface by opening `http://localhost:41999` (
   <img src=".github/resources/web-interface.png" alt="MCP Web Interface" width="700">
 </p>
 
+### LLM Integration
+
+MCP Tools includes a powerful LLM integration that enables AI models to interact with MCP servers through natural language. The LLM command creates an interactive chat session where AI can discover and use tools from one or more MCP servers on your behalf.
+
+```bash
+# Basic usage with a single MCP server
+mcp llm npx -y @modelcontextprotocol/server-filesystem ~
+
+# Use multiple servers for expanded capabilities
+mcp llm -M "npx -y @modelcontextprotocol/server-filesystem ~" -M "https://ne.tools"
+
+# Specify a provider and model
+mcp llm --provider anthropic --model claude-3-opus-20240229
+```
+
+#### Features
+
+- **Multi-Provider Support**: Works with major LLM providers:
+  - OpenAI (default) - Uses API key from `OPENAI_API_KEY`
+  - Anthropic - Uses API key from `ANTHROPIC_API_KEY`
+
+- **Multiple Server Integration**: Connect up to 3 MCP servers simultaneously:
+  ```bash
+  mcp llm -M "server1" -M "server2" -M "server3" 
+  ```
+  Tools are automatically prefixed with server IDs (s1_, s2_, s3_) to avoid naming conflicts.
+
+- **Tool Execution**: LLMs can:
+  - Discover available tools across all connected servers
+  - Call tools with proper parameters
+  - Receive and process tool results
+  - Make multiple tool calls in a single turn
+
+- **Server Aliases**: Use server aliases for simpler commands:
+  ```bash
+  # Using aliases for servers
+  mcp llm -M fs-server -M github-server
+  ```
+
+#### Example Session
+
+```
+mcp > MCP LLM Shell
+mcp > Connecting to server 1: npx -y @modelcontextprotocol/server-filesystem ~
+mcp > Server 1: Registered 8 tools
+mcp > Using provider: openai, model: gpt-4o
+mcp > Total registered tools: 8
+mcp > Type 'exit' to quit
+
+user > What files are in my current directory?
+
+agent > I'll check the files in your current directory.
+
+[Calling s1_list_dir]
+mcp > [Server 1 running list_dir with params {"path":"."}]
+{
+  "entries": [
+    {
+      "name": "README.md",
+      "type": "file",
+      "size": 12345,
+      "modTime": "2023-05-01T12:34:56Z"
+    },
+    {
+      "name": "src",
+      "type": "directory"
+    }
+  ]
+}
+
+In your current directory, you have:
+1. README.md (file, 12.1 KB)
+2. src (directory)
+
+user > Show me the contents of README.md
+
+agent > I'll show you the contents of README.md.
+
+[Calling s1_read_file]
+mcp > [Server 1 running read_file with params {"path":"README.md"}]
+{
+  "content": "# My Project\nThis is a sample README file."
+}
+
+Here's the content of README.md:
+
+# My Project
+This is a sample README file.
+```
+
+#### Configuration Options
+
+```bash
+# Provider selection
+mcp llm --provider openai     # Default
+mcp llm --provider anthropic
+
+# Model selection
+mcp llm --model gpt-4o               # Default for OpenAI
+mcp llm --model claude-3.7-sonnet    # Default for Anthropic
+
+# API key override (otherwise uses environment variables)
+mcp llm --api-key "your-api-key-here"
+
+# Display options
+mcp llm --no-color           # Disable colored output
+```
+
+The LLM integration is designed to make AI-driven workflow automation with MCP tools intuitive and powerful, allowing models to perform complex tasks by combining available tools through natural language requests.
+
 ### Project Scaffolding
 
 MCP Tools provides a scaffolding feature to quickly create new MCP servers with TypeScript:
