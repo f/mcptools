@@ -16,6 +16,7 @@ const (
 	FlagHelp        = "--help"
 	FlagHelpShort   = "-h"
 	FlagServerLogs  = "--server-logs"
+	FlagTransport   = "--transport"
 )
 
 // entity types.
@@ -34,6 +35,9 @@ var (
 	ParamsString string
 	// ShowServerLogs is a flag to show server logs.
 	ShowServerLogs bool
+	// TransportOption is the transport option for HTTP connections, valid values are "sse" and "http".
+	// Default is "http" (streamable HTTP).
+	TransportOption = "http"
 )
 
 // RootCmd creates the root command.
@@ -48,6 +52,7 @@ It allows you to discover and call tools, list resources, and interact with MCP-
 	cmd.PersistentFlags().StringVarP(&FormatOption, "format", "f", "table", "Output format (table, json, pretty)")
 	cmd.PersistentFlags().
 		StringVarP(&ParamsString, "params", "p", "{}", "JSON string of parameters to pass to the tool (for call command)")
+	cmd.PersistentFlags().StringVar(&TransportOption, "transport", "http", "HTTP transport type (http, sse)")
 
 	return cmd
 }
