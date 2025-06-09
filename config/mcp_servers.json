@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "Atlan MCP": {
+      "command": "uv",
+      "args": [
+        "run",
+        "/path/to/your/agent-toolkit/modelcontextprotocol/.venv/bin/atlan-mcp-server"
+      ],
+      "env": {
+        "ATLAN_API_KEY": "your_api_key",
+        "ATLAN_BASE_URL": "https://your-instance.atlan.com",
+        "ATLAN_AGENT_ID": "your_agent_id"
+      }
+    },
+"memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/path/to/allowed/files"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+      }
+    }
+  }
+}
