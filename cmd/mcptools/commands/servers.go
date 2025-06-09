@@ -15,13 +15,13 @@ type ServersConfig struct {
 }
 
 // ServersCmd creates the servers command.
-func ServersCmd() *cobra.Command {
+func ServersCmd(configPath string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "servers",
 		Short: "List the MCP servers installed",
 		Run: func(cmd *cobra.Command, args []string) {
 			// Read the config file
-			configPath := filepath.Join("/Users/kriti/Projects/mcptools/config/mcp_servers.json")
+			configPath := filepath.Join(configPath)
 			data, err := os.ReadFile(configPath)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error reading config file: %v\n", err)
