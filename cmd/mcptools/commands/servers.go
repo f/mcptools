@@ -15,11 +15,16 @@ type ServersConfig struct {
 }
 
 // ServersCmd creates the servers command.
-func ServersCmd(configPath string) *cobra.Command {
+func ServersCmd(configPath string, enableServers bool) *cobra.Command {
 	return &cobra.Command{
 		Use:   "servers",
-		Short: "List the MCP servers installed",
+		Short: "List the MCP servers installed in file $HOME/mcptools.config",
 		Run: func(cmd *cobra.Command, args []string) {
+			if !enableServers {
+				fmt.Fprintf(os.Stderr, "Servers command is not enabled, please create a server config at %s\n", configPath)
+				return
+			}
+
 			// Read the config file
 			configPath := filepath.Join(configPath)
 			data, err := os.ReadFile(configPath)
