@@ -556,6 +556,9 @@ mcp proxy tool add_operation "Adds a and b" "a:int,b:int" ./examples/add.sh
 # Register an inline command as an MCP tool
 mcp proxy tool add_operation "Adds a and b" "a:int,b:int" -e 'echo "total is $a + $b = $(($a+$b))"'
 
+# Register an inline command as an MCP tool with optional parameter
+ mcpt proxy tool add_operation "Adds a and b with optional result msg" "a:int,b:int,[msg:string]" -e 'echo "$msg$a + $b = $(($a+$b))"'
+
 # Unregister a tool
 mcp proxy tool --unregister add_operation
 

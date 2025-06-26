@@ -16,8 +16,9 @@ import (
 
 // Parameter represents a tool parameter with a name and type.
 type Parameter struct {
-	Name string
-	Type string
+	Name     string
+	Type     string
+	Required bool
 }
 
 // Tool represents a proxy tool that executes a shell script or command.
@@ -157,6 +158,7 @@ func (s *Server) AddTool(name, description, paramStr, scriptPath string, command
 }
 
 // parseParameters parses a comma-separated parameter string in the format "name:type,name:type".
+// If a parameter is wrapped in square brackets like [name:type], it's considered optional.
 func parseParameters(paramStr string) ([]Parameter, error) {
 	if paramStr == "" {
 		return []Parameter{}, nil
@@ -166,6 +168,17 @@ func parseParameters(paramStr string) ([]Parameter, error) {
 	parameters := make([]Parameter, 0, len(params))
 
 	for _, param := range params {
+		param = strings.TrimSpace(param)
+		required := true
+
+		// Check if parameter is optional (wrapped in square brackets)
+		if strings.HasPrefix(param, "[") && strings.HasSuffix(param, "]") {
+			// Remove the brackets
+			param = strings.TrimPrefix(param, "[")
+			param = strings.TrimSuffix(param, "]")
+			required = false
+		}
+
 		parts := strings.Split(strings.TrimSpace(param), ":")
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid parameter format: %s, expected name:type", param)
@@ -189,8 +202,9 @@ func parseParameters(paramStr string) ([]Parameter, error) {
 		}
 
 		parameters = append(parameters, Parameter{
-			Name: name,
-			Type: normalizedType,
+			Name:     name,
+			Type:     normalizedType,
+			Required: required,
 		})
 	}
 
@@ -286,7 +300,11 @@ func (s *Server) GetToolSchema(toolName string) (map[string]interface{}, error) 
 		}
 
 		properties[param.Name] = paramSchema
-		required = append(required, param.Name)
+
+		// Only add the parameter to required list if it's marked as required
+		if param.Required {
+			required = append(required, param.Name)
+		}
 	}
 
 	schema := map[string]interface{}{
@@ -435,7 +453,11 @@ func (s *Server) handleToolsList() map[string]interface{} {
 			}
 
 			properties[param.Name] = paramSchema
-			required = append(required, param.Name)
+
+			// Only add to required list if the parameter is required
+			if param.Required {
+				required = append(required, param.Name)
+			}
 		}
 
 		schema := map[string]interface{}{
@@ -471,7 +493,7 @@ func (s *Server) handleToolCall(params map[string]interface{}) (map[string]inter
 		return nil, fmt.Errorf("'name' parameter must be a string")
 	}
 
-	_, exists := s.tools[name]
+	tool, exists := s.tools[name]
 	if !exists {
 		return nil, fmt.Errorf("tool not found: %s", name)
 	}
@@ -485,6 +507,15 @@ func (s *Server) handleToolCall(params map[string]interface{}) (map[string]inter
 	arguments, ok := argumentsValue.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("'arguments' parameter must be an object")
+	}
+
+	// Check for required parameters
+	for _, param := range tool.Parameters {
+		if param.Required {
+			if _, exists := arguments[param.Name]; !exists {
+				return nil, fmt.Errorf("missing required parameter: %s", param.Name)
+			}
+		}
 	}
 
 	// Log the input parameters
@@ -587,7 +618,11 @@ func RunProxyServer(toolConfigs map[string]map[string]string) error {
 			if i > 0 {
 				paramStr += ", "
 			}
-			paramStr += param.Name + ":" + param.Type
+			if param.Required {
+				paramStr += param.Name + ":" + param.Type
+			} else {
+				paramStr += "[" + param.Name + ":" + param.Type + "]"
+			}
 		}
 		if paramStr != "" {
 			fmt.Fprintf(os.Stderr, "  Parameters: %s\n", paramStr)
