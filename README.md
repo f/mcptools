@@ -581,6 +581,8 @@ This new format clearly shows what parameters each tool accepts, making it easie
 2. Start the proxy server, which implements the MCP protocol
 3. When a tool is called, parameters are passed as environment variables to the script/command
 4. The script/command's output is returned as the tool response
+5.  If the script's output is a base64-encoded PNG image (prefixed with `data:image/png;base64,`), it is returned as an [ImageContent](https://modelcontextprotocol.io/specification/2025-06-18/server/prompts#image-content) object.
+
 
 #### Example Scripts and Commands
 
@@ -597,6 +599,16 @@ fi
 # Perform the addition
 result=$(($a + $b))
 echo "The sum of $a and $b is $result"
+```
+
+**Generating a QR Code**
+
+This example requires a tool like `qrencode` to be installed.
+
+```bash
+# Register a tool to generate a QR code
+mcp proxy tool qrcode "Generates a QR code" "text:string" \
+  -e 'echo -e "data:image/png;base64,$(qrencode -t png -o - "$text" | base64 -w 0)"'
 ```
 
 **Inline Command Example:**
