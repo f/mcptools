@@ -11,8 +11,8 @@ import (
 	"github.com/f/mcptools/pkg/alias"
 	"github.com/f/mcptools/pkg/jsonutils"
 	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"
-
 	"github.com/spf13/cobra"
 )
 
@@ -47,7 +47,11 @@ var CreateClientFunc = func(args []string, _ ...client.ClientOption) (*client.Cl
 	var err error
 
 	if len(args) == 1 && IsHTTP(args[0]) {
-		c, err = client.NewSSEMCPClient(args[0])
+		opts := []transport.ClientOption{injectTrace(context.Background())}
+		if Verbose {
+			opts = append(opts, transport.WithHTTPClient(verbose))
+		}
+		c, err = client.NewSSEMCPClient(args[0], opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -106,6 +110,9 @@ func ProcessFlags(args []string) []string {
 			i += 2
 		case args[i] == FlagServerLogs:
 			ShowServerLogs = true
+			i++
+		case args[i] == FlagVerbose || args[i] == FlagVerboseShort:
+			Verbose = true
 			i++
 		default:
 			parsedArgs = append(parsedArgs, args[i])

@@ -9,13 +9,15 @@ import (
 
 // flags.
 const (
-	FlagFormat      = "--format"
-	FlagFormatShort = "-f"
-	FlagParams      = "--params"
-	FlagParamsShort = "-p"
-	FlagHelp        = "--help"
-	FlagHelpShort   = "-h"
-	FlagServerLogs  = "--server-logs"
+	FlagFormat       = "--format"
+	FlagFormatShort  = "-f"
+	FlagParams       = "--params"
+	FlagParamsShort  = "-p"
+	FlagHelp         = "--help"
+	FlagHelpShort    = "-h"
+	FlagServerLogs   = "--server-logs"
+	FlagVerbose      = "--verbose"
+	FlagVerboseShort = "-v"
 )
 
 // entity types.
@@ -34,6 +36,8 @@ var (
 	ParamsString string
 	// ShowServerLogs is a flag to show server logs.
 	ShowServerLogs bool
+	// Show http verbose info.
+	Verbose bool
 )
 
 // RootCmd creates the root command.
@@ -48,6 +52,7 @@ It allows you to discover and call tools, list resources, and interact with MCP-
 	cmd.PersistentFlags().StringVarP(&FormatOption, "format", "f", "table", "Output format (table, json, pretty)")
 	cmd.PersistentFlags().
 		StringVarP(&ParamsString, "params", "p", "{}", "JSON string of parameters to pass to the tool (for call command)")
+	cmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "Show http verbose info")
 
 	return cmd
 }
