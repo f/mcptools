@@ -55,6 +55,9 @@ func CallCmd() *cobra.Command {
 				case cmdArgs[i] == FlagServerLogs:
 					ShowServerLogs = true
 					i++
+				case cmdArgs[i] == FlagVerbose || cmdArgs[i] == FlagVerboseShort:
+					Verbose = true
+					i++
 				default:
 					parsedArgs = append(parsedArgs, cmdArgs[i])
 					i++
