@@ -6,7 +6,6 @@ import (
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/client/transport"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -24,6 +23,6 @@ func injectTrace(ctx context.Context) transport.ClientOption {
 	})
 	ctx = trace.ContextWithRemoteSpanContext(ctx, sc)
 	carrier := propagation.MapCarrier{}
-	otel.GetTextMapPropagator().Inject(ctx, carrier)
+	propagation.TraceContext{}.Inject(ctx, carrier)
 	return client.WithHeaders(carrier)
 }
