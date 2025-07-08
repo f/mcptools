@@ -33,36 +33,7 @@ func CallCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			cmdArgs := args
-			parsedArgs := []string{}
-			entityName := ""
-
-			i := 0
-			entityExtracted := false
-
-			for i < len(cmdArgs) {
-				switch {
-				case (cmdArgs[i] == FlagFormat || cmdArgs[i] == FlagFormatShort) && i+1 < len(cmdArgs):
-					FormatOption = cmdArgs[i+1]
-					i += 2
-				case (cmdArgs[i] == FlagParams || cmdArgs[i] == FlagParamsShort) && i+1 < len(cmdArgs):
-					ParamsString = cmdArgs[i+1]
-					i += 2
-				case !entityExtracted:
-					entityName = cmdArgs[i]
-					entityExtracted = true
-					i++
-				case cmdArgs[i] == FlagServerLogs:
-					ShowServerLogs = true
-					i++
-				case cmdArgs[i] == FlagVerbose || cmdArgs[i] == FlagVerboseShort:
-					Verbose = true
-					i++
-				default:
-					parsedArgs = append(parsedArgs, cmdArgs[i])
-					i++
-				}
-			}
+			parsedArgs, entityName := parseCallArguments(args)
 
 			if entityName == "" {
 				fmt.Fprintln(os.Stderr, "Error: entity name is required")
@@ -150,4 +121,39 @@ func CallCmd() *cobra.Command {
 			}
 		},
 	}
+}
+
+// fix cyclomatic complexity
+func parseCallArguments(args []string) ([]string, string) {
+	cmdArgs := args
+	parsedArgs := []string{}
+	entityName := ""
+
+	i := 0
+	entityExtracted := false
+
+	for i < len(cmdArgs) {
+		switch {
+		case (cmdArgs[i] == FlagFormat || cmdArgs[i] == FlagFormatShort) && i+1 < len(cmdArgs):
+			FormatOption = cmdArgs[i+1]
+			i += 2
+		case (cmdArgs[i] == FlagParams || cmdArgs[i] == FlagParamsShort) && i+1 < len(cmdArgs):
+			ParamsString = cmdArgs[i+1]
+			i += 2
+		case !entityExtracted:
+			entityName = cmdArgs[i]
+			entityExtracted = true
+			i++
+		case cmdArgs[i] == FlagServerLogs:
+			ShowServerLogs = true
+			i++
+		case cmdArgs[i] == FlagVerbose || cmdArgs[i] == FlagVerboseShort:
+			Verbose = true
+			i++
+		default:
+			parsedArgs = append(parsedArgs, cmdArgs[i])
+			i++
+		}
+	}
+	return parsedArgs, entityName
 }

@@ -36,7 +36,7 @@ var (
 	ParamsString string
 	// ShowServerLogs is a flag to show server logs.
 	ShowServerLogs bool
-	// Show http verbose info.
+	// Verbose show http verbose info.
 	Verbose bool
 )
 

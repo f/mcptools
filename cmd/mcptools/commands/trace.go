@@ -12,7 +12,7 @@ import (
 
 func generateTraceID() [16]byte {
 	var traceID [16]byte
-	rand.Read(traceID[:])
+	_, _ = rand.Read(traceID[:])
 	return traceID
 }
 
