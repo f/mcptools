@@ -231,7 +231,9 @@ func callCommand(thisCmd *cobra.Command, mcpClient *client.Client, commandArgs [
 		var toolResponse *mcp.CallToolResult
 		request := mcp.CallToolRequest{}
 		request.Params.Name = entityName
-		request.Params.Arguments = params
+		if len(params) > 0 {
+			request.Params.Arguments = params // fix unittest "tool_name without params"
+		}
 		toolResponse, execErr = mcpClient.CallTool(context.Background(), request)
 		if execErr == nil && toolResponse != nil {
 			resp = ConvertJSONToMap(toolResponse)
