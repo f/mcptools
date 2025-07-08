@@ -11,7 +11,7 @@ import (
 var Version = "dev"
 
 // getHomeDirectory returns the user's home directory
-// Tries HOME first, then falls back to USERPROFILE for Windows
+// Tries HOME first, then falls back to USERPROFILE for Windows.
 func getHomeDirectory() string {
 	homeDir := os.Getenv("HOME")
 	if homeDir == "" {
