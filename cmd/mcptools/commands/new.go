@@ -15,6 +15,7 @@ const (
 	sdkTypeScript  = "ts"
 	transportStdio = "stdio"
 	transportSSE   = "sse"
+	transportHTTP  = "http"
 )
 
 // NewCmd returns a new 'new' command for scaffolding MCP projects.
@@ -30,7 +31,7 @@ func NewCmd() *cobra.Command {
 Examples:
   mcp new tool:hello_world resource:file prompt:hello
   mcp new tool:hello_world --sdk=ts
-  mcp new tool:hello_world --transport=stdio|sse`,
+  mcp new tool:hello_world --transport=stdio|sse|http`,
 		SilenceUsage: true,
 		RunE: func(_ *cobra.Command, args []string) error {
 			if len(args) == 0 {
@@ -48,8 +49,8 @@ Examples:
 			}
 
 			// Validate transport flag
-			if transportFlag != "" && transportFlag != transportStdio && transportFlag != transportSSE {
-				return fmt.Errorf("unsupported transport: %s (supported options: stdio, sse)", transportFlag)
+			if transportFlag != "" && transportFlag != transportStdio && transportFlag != transportSSE && transportFlag != transportHTTP {
+				return fmt.Errorf("unsupported transport: %s (supported options: stdio, sse, http)", transportFlag)
 			}
 
 			// Set default transport if not specified
@@ -84,7 +85,7 @@ Examples:
 
 	// Add flags
 	cmd.Flags().StringVar(&sdkFlag, "sdk", "", "Specify the SDK to use (ts)")
-	cmd.Flags().StringVar(&transportFlag, "transport", "", "Specify the transport to use (stdio, sse)")
+	cmd.Flags().StringVar(&transportFlag, "transport", "", "Specify the transport to use (stdio, sse, http)")
 
 	return cmd
 }
@@ -128,6 +129,8 @@ func createProjectStructure(components map[string]string, sdk, transport string)
 	var serverTemplateFile string
 	if transport == transportSSE {
 		serverTemplateFile = filepath.Join(templatesDir, "server_sse.ts")
+	} else if transport == transportHTTP {
+		serverTemplateFile = filepath.Join(templatesDir, "server_http.ts")
 	} else {
 		// Use stdio by default
 		serverTemplateFile = filepath.Join(templatesDir, "server_stdio.ts")

@@ -47,7 +47,17 @@ var CreateClientFunc = func(args []string, _ ...client.ClientOption) (*client.Cl
 	var err error
 
 	if len(args) == 1 && IsHTTP(args[0]) {
-		c, err = client.NewSSEMCPClient(args[0])
+		// Validate transport option for HTTP URLs
+		if TransportOption != "http" && TransportOption != "sse" {
+			return nil, fmt.Errorf("invalid transport option: %s (supported: http, sse)", TransportOption)
+		}
+		
+		if TransportOption == "sse" {
+			c, err = client.NewSSEMCPClient(args[0])
+		} else {
+			// Default to streamable HTTP
+			c, err = client.NewStreamableHttpClient(args[0])
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -91,6 +101,7 @@ var CreateClientFunc = func(args []string, _ ...client.ClientOption) (*client.Cl
 
 // ProcessFlags processes command line flags, sets the format option, and returns the remaining
 // arguments. Supported format options: json, pretty, and table.
+// Supported transport options: http and sse.
 //
 // For example, if the input arguments are ["tools", "--format", "pretty", "npx", "-y",
 // "@modelcontextprotocol/server-filesystem", "~"], it would return ["npx", "-y",
@@ -103,6 +114,9 @@ func ProcessFlags(args []string) []string {
 		switch {
 		case (args[i] == FlagFormat || args[i] == FlagFormatShort) && i+1 < len(args):
 			FormatOption = args[i+1]
+			i += 2
+		case args[i] == FlagTransport && i+1 < len(args):
+			TransportOption = args[i+1]
 			i += 2
 		case args[i] == FlagServerLogs:
 			ShowServerLogs = true
