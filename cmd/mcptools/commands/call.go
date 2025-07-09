@@ -123,7 +123,7 @@ func CallCmd() *cobra.Command {
 	}
 }
 
-// fix cyclomatic complexity
+// fix cyclomatic complexity.
 func parseCallArguments(args []string) ([]string, string) {
 	cmdArgs := args
 	parsedArgs := []string{}
