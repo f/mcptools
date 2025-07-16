@@ -516,16 +516,28 @@ MCP Tools can operate as both a client and a server, with two server modes avail
 The mock server mode creates a simulated MCP server for testing clients without implementing a full server:
 
 ```bash
-# Create a mock server with a simple tool
+# Create a mock server with a simple tool (stdio transport - default)
 mcp mock tool hello_world "A simple greeting tool"
 
-# Create a mock server with multiple entity types
-mcp mock tool hello_world "A greeting tool" \
+# Create a mock server with HTTP transport (for Docker/Kubernetes deployment)
+mcp mock --port 3000 tool hello_world "A greeting tool" \
        prompt welcome "A welcome prompt" "Hello {{name}}, welcome to {{location}}!" \
        resource docs://readme "Documentation" "Mock MCP Server\nThis is a mock server"
 ```
 
-Features of the mock server:
+#### Transport Options
+
+The mock server supports two transport modes:
+
+- **Stdio transport (default)**: Uses stdin/stdout, suitable for direct command-line use
+- **HTTP transport**: Uses HTTP with JSON-RPC, suitable for containerized deployments
+
+When using HTTP transport (`--port` flag), the server provides:
+- **JSON-RPC endpoint**: `POST http://localhost:PORT/mcp`
+- **SSE endpoint**: `GET http://localhost:PORT/sse` (for SSE-compatible clients)
+- **Health check**: `GET http://localhost:PORT/health`
+
+#### Features
 
 - Full initialization handshake
 - Tool listing with standardized schema
@@ -533,6 +545,7 @@ Features of the mock server:
 - Resource listing and reading
 - Prompt listing and retrieval with argument substitution
 - Detailed request/response logging to `~/.mcpt/logs/mock.log`
+- Docker/Kubernetes ready with HTTP transport
 
 #### Using Prompt Templates
 
