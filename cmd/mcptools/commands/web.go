@@ -1269,20 +1269,20 @@ func handleCall(cache *MCPClientCache) http.HandlerFunc {
 		defer cache.mutex.Unlock()
 
 		switch requestData.Type {
-		case "tool":
+		case EntityTypeTool:
 			var toolResponse *mcp.CallToolResult
 			request := mcp.CallToolRequest{}
 			request.Params.Name = requestData.Name
 			request.Params.Arguments = requestData.Params
 			toolResponse, callErr = cache.client.CallTool(context.Background(), request)
 			resp = ConvertJSONToMap(toolResponse)
-		case "resource":
+		case EntityTypeRes:
 			var resourceResponse *mcp.ReadResourceResult
 			request := mcp.ReadResourceRequest{}
 			request.Params.URI = requestData.Name
 			resourceResponse, callErr = cache.client.ReadResource(context.Background(), request)
 			resp = ConvertJSONToMap(resourceResponse)
-		case "prompt":
+		case EntityTypePrompt:
 			var promptResponse *mcp.GetPromptResult
 			request := mcp.GetPromptRequest{}
 			request.Params.Name = requestData.Name

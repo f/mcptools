@@ -11,8 +11,8 @@ import (
 	"github.com/f/mcptools/pkg/alias"
 	"github.com/f/mcptools/pkg/jsonutils"
 	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"
-
 	"github.com/spf13/cobra"
 )
 
@@ -47,13 +47,17 @@ var CreateClientFunc = func(args []string, _ ...client.ClientOption) (*client.Cl
 	var err error
 
 	if len(args) == 1 && IsHTTP(args[0]) {
+		opts := []transport.ClientOption{injectTrace(context.Background())}
+		if Verbose {
+			opts = append(opts, transport.WithHTTPClient(verbose))
+		}
 		// Validate transport option for HTTP URLs
 		if TransportOption != "http" && TransportOption != "sse" {
 			return nil, fmt.Errorf("invalid transport option: %s (supported: http, sse)", TransportOption)
 		}
 		
 		if TransportOption == "sse" {
-			c, err = client.NewSSEMCPClient(args[0])
+			c, err = client.NewSSEMCPClient(args[0], opts...)
 		} else {
 			// Default to streamable HTTP
 			c, err = client.NewStreamableHttpClient(args[0])
@@ -120,6 +124,9 @@ func ProcessFlags(args []string) []string {
 			i += 2
 		case args[i] == FlagServerLogs:
 			ShowServerLogs = true
+			i++
+		case args[i] == FlagVerbose || args[i] == FlagVerboseShort:
+			Verbose = true
 			i++
 		default:
 			parsedArgs = append(parsedArgs, args[i])
