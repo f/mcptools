@@ -27,9 +27,10 @@ mcp new tool:hello_world resource:file prompt:hello
 # Create a project with a specific SDK (currently only TypeScript/ts supported)
 mcp new tool:hello_world --sdk=ts
 
-# Create a project with a specific transport (stdio or sse)
+# Create a project with a specific transport (stdio, sse, or http)
 mcp new tool:hello_world --transport=stdio
 mcp new tool:hello_world --transport=sse
+mcp new tool:hello_world --transport=http
 ```
 
 ## Available Templates
@@ -41,6 +42,7 @@ mcp new tool:hello_world --transport=sse
 - **prompt**: Prompt implementation template
 - **server_stdio**: Server with stdio transport
 - **server_sse**: Server with SSE transport
+- **server_http**: Server with streamable HTTP transport
 - **full_server**: Complete server with all three capabilities
 
 ## Project Structure
