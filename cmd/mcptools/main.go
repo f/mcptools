@@ -4,7 +4,9 @@ Package main implements mcp functionality.
 package main
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/f/mcptools/cmd/mcptools/commands"
 	"github.com/spf13/cobra"
@@ -24,6 +26,16 @@ func init() {
 func main() {
 	cobra.EnableCommandSorting = false
 
+	// check if mcptools.config exists
+	configPath := filepath.Join(os.Getenv("HOME"), "mcptools.config")
+	enableServers := false
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "No server config found at %s, servers command will not be available.\n", configPath)
+	} else {
+		fmt.Fprintf(os.Stderr, "Loading server config from %s\n", configPath)
+		enableServers = true
+	}
+
 	rootCmd := commands.RootCmd()
 	rootCmd.AddCommand(
 		commands.VersionCmd(),
@@ -41,6 +53,7 @@ func main() {
 		commands.ConfigsCmd(),
 		commands.NewCmd(),
 		commands.GuardCmd(),
+		commands.ServersCmd(configPath, enableServers),
 	)
 
 	if err := rootCmd.Execute(); err != nil {

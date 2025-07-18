@@ -537,3 +537,133 @@ func TestShellCommands(t *testing.T) {
 		})
 	}
 }
+
+func TestMain(t *testing.T) {
+	// Create a temporary directory for test files
+	tempDir, err := os.MkdirTemp("", "mcptools-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create test config file
+	testConfig := commands.ServersConfig{
+		MCPServers: map[string]commands.ServerConfig{
+			"test-server": {
+				Command: "test-command",
+				Args:    []string{"arg1", "arg2"},
+			},
+		},
+	}
+
+	configPath := filepath.Join(tempDir, "mcp_servers.json")
+	configData, err := json.Marshal(testConfig)
+	if err != nil {
+		t.Fatalf("Failed to marshal test config: %v", err)
+	}
+
+	if err := os.WriteFile(configPath, configData, 0644); err != nil {
+		t.Fatalf("Failed to write test config: %v", err)
+	}
+
+	tests := []struct {
+		name           string
+		configPath     string
+		args           []string
+		expectedOutput string
+		expectError    bool
+	}{
+		{
+			name:       "servers command with valid config",
+			configPath: configPath,
+			args:       []string{"servers"},
+			expectedOutput: `test-server: test-command arg1 arg2
+`,
+			expectError: false,
+		},
+		{
+			name:           "servers command with non-existent config",
+			configPath:     filepath.Join(tempDir, "nonexistent.json"),
+			args:           []string{"servers"},
+			expectedOutput: `Servers command is not enabled, please create a server config at ` + filepath.Join(tempDir, "nonexistent.json") + "\n",
+			expectError:    false,
+		},
+		{
+			name:           "help command shows servers",
+			configPath:     configPath,
+			args:           []string{"--help"},
+			expectedOutput: "servers",
+			expectError:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set up test environment
+			os.Setenv("HOME", tempDir)
+			defer os.Unsetenv("HOME")
+
+			// Create pipes for capturing output
+			oldStdout := os.Stdout
+			oldStderr := os.Stderr
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+			os.Stderr = w
+			defer func() {
+				os.Stdout = oldStdout
+				os.Stderr = oldStderr
+			}()
+
+			// Create and execute root command
+			rootCmd := commands.RootCmd()
+			rootCmd.AddCommand(
+				commands.VersionCmd(),
+				commands.ToolsCmd(),
+				commands.ResourcesCmd(),
+				commands.PromptsCmd(),
+				commands.CallCmd(),
+				commands.GetPromptCmd(),
+				commands.ReadResourceCmd(),
+				commands.ShellCmd(),
+				commands.WebCmd(),
+				commands.MockCmd(),
+				commands.ProxyCmd(),
+				commands.AliasCmd(),
+				commands.ConfigsCmd(),
+				commands.NewCmd(),
+				commands.GuardCmd(),
+				commands.ServersCmd(tt.configPath, true),
+			)
+
+			// Set the command arguments
+			rootCmd.SetArgs(tt.args)
+
+			// Execute the command
+			err := rootCmd.Execute()
+
+			// Close the write end of the pipe
+			w.Close()
+
+			// Read the output
+			output, _ := io.ReadAll(r)
+
+			// Check error conditions
+			if tt.expectError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			// Check output
+			if got := string(output); !strings.Contains(got, tt.expectedOutput) {
+				t.Errorf("Expected output to contain:\n%s\nGot:\n%s", tt.expectedOutput, got)
+			}
+		})
+	}
+}
