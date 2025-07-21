@@ -54,6 +54,11 @@ func (m *MockTransport) Close() error {
 	return nil
 }
 
+// GetSessionId is a no-op for the mock transport
+func (m *MockTransport) GetSessionId() string {
+	return ""
+}
+
 // setupMockClient creates a mock client with the given execute function and returns cleanup function.
 func setupMockClient(executeFunc func(method string, _ any) (map[string]any, error)) func() {
 	// Save original function and restore later

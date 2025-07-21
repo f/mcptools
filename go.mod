@@ -3,7 +3,7 @@ module github.com/f/mcptools
 go 1.24.1
 
 require (
-	github.com/mark3labs/mcp-go v0.24.1
+	github.com/mark3labs/mcp-go v0.34.0
 	github.com/peterh/liner v1.2.2
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1

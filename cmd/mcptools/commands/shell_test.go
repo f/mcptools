@@ -187,7 +187,7 @@ func TestShellCallCommand(t *testing.T) {
 			name:            "tool_name without params",
 			input:           "test-tool\n/q\n",
 			expectedOutputs: []string{"Tool executed successfully"},
-			expectedParams:  map[string]any{"name": "test-tool"},
+			expectedParams:  map[string]any{"name": "test-tool", "arguments": map[string]any{}},
 			mockResponses: map[string]map[string]any{
 				"tools/call": {
 					"content": []any{map[string]any{"type": "text", "text": "Tool executed successfully"}},
@@ -198,7 +198,7 @@ func TestShellCallCommand(t *testing.T) {
 			name:            "call tool without params",
 			input:           "call test-tool\n/q\n",
 			expectedOutputs: []string{"Tool executed successfully"},
-			expectedParams:  map[string]any{"name": "test-tool"},
+			expectedParams:  map[string]any{"name": "test-tool", "arguments": map[string]any{}},
 			mockResponses: map[string]map[string]any{
 				"tools/call": {
 					"content": []any{map[string]any{"type": "text", "text": "Tool executed successfully"}},
