@@ -123,6 +123,7 @@ Available Commands:
   alias         Manage MCP server aliases
   configs       Manage MCP server configurations
   new           Create a new MCP project component
+  servers       List the MCP servers installed in file $HOME/mcptools.config
   help          Help about any command
   completion    Generate the autocompletion script for the specified shell
 
@@ -235,6 +236,12 @@ mcp tools --format pretty npx -y @modelcontextprotocol/server-filesystem ~
 
 MCP Tools includes several core commands for interacting with MCP servers:
 
+#### List Installed Servers
+Configure MCP Servers in $HOME/mcptools.config. See how to below in section `Installing MCP Servers`
+```bash
+mcp servers
+```
+
 #### List Available Tools
 
 ```bash
@@ -298,6 +305,35 @@ read_multiple_files(paths:str[])
 ```
 
 This can be helpful for debugging or understanding what's happening on the server side when executing these commands.
+
+### Configuring MCP Servers
+You can provide configure of MCP Servers available in file $HOME/mcptools.config in the following format:
+```
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/path/to/allowed/files"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+      }
+    }
+  }
+}
+``` 
+
 
 ### Interactive Shell
 
