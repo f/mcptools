@@ -154,6 +154,11 @@ func CallCmd() *cobra.Command {
 				fmt.Fprintf(os.Stderr, "%v\n", formatErr)
 				os.Exit(1)
 			}
+
+			// Exit with non-zero code if there was an execution error
+			if execErr != nil {
+				os.Exit(1)
+			}
 		},
 	}
 }
