@@ -341,7 +341,7 @@ func printShellHelp(thisCmd *cobra.Command) {
 	fmt.Fprintln(thisCmd.OutOrStdout(), "  format [json|pretty|table] Get or set output format")
 	fmt.Fprintln(thisCmd.OutOrStdout(), "Direct Tool Calling:")
 	fmt.Fprintln(thisCmd.OutOrStdout(), "  <tool_name> {\"param\": \"value\"}  Call a tool directly with JSON parameters")
-	fmt.Fprintln(thisCmd.OutOrStdout(), "  resource:<name>            Read a resource directly")
+	fmt.Fprintln(thisCmd.OutOrStdout(), "  resource:<uri>             Read a resource directly")
 	fmt.Fprintln(thisCmd.OutOrStdout(), "  prompt:<name>              Get a prompt directly")
 	fmt.Fprintln(thisCmd.OutOrStdout(), "Special Commands:")
 	fmt.Fprintln(thisCmd.OutOrStdout(), "  /h, /help                  Show this help")
