@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/f/mcptools/pkg/jsonutils"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -516,7 +516,7 @@ func formatColoredGroupedServers(servers []ServerConfig) string {
 
 	var buf bytes.Buffer
 	// Check if we're outputting to a terminal (for colors)
-	useColors := term.IsTerminal(int(os.Stdout.Fd()))
+	useColors := jsonutils.IsTerminal()
 
 	for _, source := range sourceOrder {
 		// Print source header with bold blue

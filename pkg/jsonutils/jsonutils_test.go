@@ -504,3 +504,11 @@ func TestNormalizeParameterType(t *testing.T) {
 		})
 	}
 }
+
+func TestIsTerminal_NoColor(t *testing.T) {
+	// With NO_COLOR set, isTerminal should return false
+	t.Setenv("NO_COLOR", "1")
+	if IsTerminal() {
+		t.Error("IsTerminal() should return false when NO_COLOR is set")
+	}
+}

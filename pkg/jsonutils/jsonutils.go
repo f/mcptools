@@ -37,8 +37,11 @@ const (
 	shortTypeArray  = "arr"
 )
 
-// isTerminal determines if stdout is a terminal (for colorized output).
-func isTerminal() bool {
+// IsTerminal reports whether stdout is a terminal and NO_COLOR is not set.
+func IsTerminal() bool {
+	if _, noColor := os.LookupEnv("NO_COLOR"); noColor {
+		return false
+	}
 	return term.IsTerminal(int(os.Stdout.Fd()))
 }
 
@@ -152,7 +155,7 @@ func formatToolsList(tools any) (string, error) {
 	termWidth := getTermWidth()
 	descIndent := "     " // 5 spaces for description indentation
 	descWidth := termWidth - len(descIndent)
-	useColors := isTerminal()
+	useColors := IsTerminal()
 
 	for i, t := range toolsSlice {
 		tool, ok1 := t.(map[string]any)
@@ -620,7 +623,7 @@ func formatResourcesList(resources any) (string, error) {
 
 	var buf bytes.Buffer
 	w := tabwriter.NewWriter(&buf, 0, 0, 2, ' ', 0)
-	useColors := isTerminal()
+	useColors := IsTerminal()
 
 	// NOTE: Ensure that the column headers are the same length,
 	//       including the color escape sequences!
@@ -685,7 +688,7 @@ func formatPromptsList(prompts any) (string, error) {
 	termWidth := getTermWidth()
 	descIndent := "     " // 5 spaces for description indentation
 	descWidth := termWidth - len(descIndent)
-	useColors := isTerminal()
+	useColors := IsTerminal()
 
 	for i, p := range promptsSlice {
 		prompt, ok1 := p.(map[string]any)
@@ -731,7 +734,7 @@ func formatContent(content any) (string, error) {
 	}
 
 	var buf strings.Builder
-	useColors := isTerminal()
+	useColors := IsTerminal()
 
 	for _, c := range contentSlice {
 		contentItem, ok1 := c.(map[string]any)
@@ -775,7 +778,7 @@ func formatGenericMap(data map[string]any) (string, error) {
 
 	var buf bytes.Buffer
 	w := tabwriter.NewWriter(&buf, 0, 0, 2, ' ', 0)
-	useColors := isTerminal()
+	useColors := IsTerminal()
 
 	if useColors {
 		fmt.Fprintf(w, "%sKEY%s\t%sVALUE%s\n",
