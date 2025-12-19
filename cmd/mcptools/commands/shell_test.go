@@ -365,3 +365,64 @@ func TestShellExit(t *testing.T) {
 		})
 	}
 }
+
+func TestShellQuietFlag(t *testing.T) {
+	tests := []struct { //nolint:govet
+		name             string
+		args             []string
+		unexpectedOutput []string
+		expectStartup    bool
+	}{
+		{
+			name:          "without quiet flag shows startup messages",
+			args:          []string{"echo", "test"},
+			expectStartup: true,
+		},
+		{
+			name:             "with --quiet flag suppresses startup messages",
+			args:             []string{"--quiet", "echo", "test"},
+			expectStartup:    false,
+			unexpectedOutput: []string{"MCP Tools Shell", "Connected to Server", "Type '/h' for help"},
+		},
+		{
+			name:             "with -q flag suppresses startup messages",
+			args:             []string{"-q", "echo", "test"},
+			expectStartup:    false,
+			unexpectedOutput: []string{"MCP Tools Shell", "Connected to Server", "Type '/h' for help"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset QuietMode before each test
+			QuietMode = false
+
+			cmd, buf, cleanupSetup := setupTestCommand(t, "/q\n")
+			defer cleanupSetup()
+
+			cleanupClient := setupMockClient(func(_ string, _ any) (map[string]any, error) {
+				return map[string]any{}, nil
+			})
+			defer cleanupClient()
+
+			cmd.SetArgs(tt.args)
+			err := cmd.Execute()
+			if err != nil {
+				t.Errorf("cmd.Execute() error = %v", err)
+			}
+
+			output := buf.String()
+			if tt.expectStartup {
+				if !strings.Contains(output, "MCP Tools Shell") {
+					t.Errorf("Expected startup messages, got: %s", output)
+				}
+			} else {
+				for _, unexpected := range tt.unexpectedOutput {
+					if strings.Contains(output, unexpected) {
+						t.Errorf("Expected output to NOT contain %q, got: %s", unexpected, output)
+					}
+				}
+			}
+		})
+	}
+}
