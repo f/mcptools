@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -176,7 +177,7 @@ var CreateClientFunc = func(args []string, _ ...client.ClientOption) (*client.Cl
 		if err != nil {
 			return nil, fmt.Errorf("init error: %w", err)
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(time.Duration(InitTimeout) * time.Second):
 		return nil, fmt.Errorf("initialization timed out")
 	}
 
@@ -210,6 +211,11 @@ func ProcessFlags(args []string) []string {
 			i += 2
 		case args[i] == FlagAuthHeader && i+1 < len(args):
 			AuthHeader = args[i+1]
+			i += 2
+		case (args[i] == FlagTimeout || args[i] == FlagTimeoutShort) && i+1 < len(args):
+			if _, err := fmt.Sscanf(args[i+1], "%d", &InitTimeout); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: invalid timeout value %q, using default\n", args[i+1])
+			}
 			i += 2
 		default:
 			parsedArgs = append(parsedArgs, args[i])

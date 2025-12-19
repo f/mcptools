@@ -9,16 +9,18 @@ import (
 
 // flags.
 const (
-	FlagFormat      = "--format"
-	FlagFormatShort = "-f"
-	FlagParams      = "--params"
-	FlagParamsShort = "-p"
-	FlagHelp        = "--help"
-	FlagHelpShort   = "-h"
-	FlagServerLogs  = "--server-logs"
-	FlagTransport   = "--transport"
-	FlagAuthUser    = "--auth-user"
-	FlagAuthHeader  = "--auth-header"
+	FlagFormat       = "--format"
+	FlagFormatShort  = "-f"
+	FlagParams       = "--params"
+	FlagParamsShort  = "-p"
+	FlagHelp         = "--help"
+	FlagHelpShort    = "-h"
+	FlagServerLogs   = "--server-logs"
+	FlagTransport    = "--transport"
+	FlagAuthUser     = "--auth-user"
+	FlagAuthHeader   = "--auth-header"
+	FlagTimeout      = "--timeout"
+	FlagTimeoutShort = "-t"
 )
 
 // entity types.
@@ -51,6 +53,8 @@ var (
 	AuthUser string
 	// AuthHeader is a custom Authorization header.
 	AuthHeader string
+	// InitTimeout is the timeout for MCP server initialization in seconds.
+	InitTimeout = 10
 )
 
 // RootCmd creates the root command.
@@ -68,6 +72,7 @@ It allows you to discover and call tools, list resources, and interact with MCP-
 	cmd.PersistentFlags().StringVar(&TransportOption, "transport", "http", "HTTP transport type (http, sse)")
 	cmd.PersistentFlags().StringVar(&AuthUser, "auth-user", "", "Basic authentication in username:password format")
 	cmd.PersistentFlags().StringVar(&AuthHeader, "auth-header", "", "Custom Authorization header (e.g., 'Bearer token' or 'Basic base64credentials')")
+	cmd.PersistentFlags().IntVarP(&InitTimeout, "timeout", "t", 10, "Initialization timeout in seconds")
 
 	return cmd
 }
