@@ -46,6 +46,9 @@ func ShellCmd() *cobra.Command { //nolint:gocyclo
 				case cmdArgs[i] == FlagAuthHeader && i+1 < len(cmdArgs):
 					AuthHeader = cmdArgs[i+1]
 					i += 2
+				case cmdArgs[i] == FlagQuiet || cmdArgs[i] == FlagQuietShort:
+					QuietMode = true
+					i++
 				default:
 					parsedArgs = append(parsedArgs, cmdArgs[i])
 					i++
@@ -64,9 +67,11 @@ func ShellCmd() *cobra.Command { //nolint:gocyclo
 				os.Exit(1)
 			}
 
-			fmt.Fprintf(thisCmd.OutOrStdout(), "mcp > MCP Tools Shell (%s)\n", Version)
-			fmt.Fprintf(thisCmd.OutOrStdout(), "mcp > Connected to Server: %s\n", strings.Join(parsedArgs, " "))
-			fmt.Fprintf(thisCmd.OutOrStdout(), "\nmcp > Type '/h' for help or '/q' to quit\n")
+			if !QuietMode {
+				fmt.Fprintf(thisCmd.OutOrStdout(), "mcp > MCP Tools Shell (%s)\n", Version)
+				fmt.Fprintf(thisCmd.OutOrStdout(), "mcp > Connected to Server: %s\n", strings.Join(parsedArgs, " "))
+				fmt.Fprintf(thisCmd.OutOrStdout(), "\nmcp > Type '/h' for help or '/q' to quit\n")
+			}
 
 			line := liner.NewLiner()
 			line.SetCtrlCAborts(true)

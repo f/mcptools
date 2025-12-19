@@ -19,6 +19,8 @@ const (
 	FlagTransport   = "--transport"
 	FlagAuthUser    = "--auth-user"
 	FlagAuthHeader  = "--auth-header"
+	FlagQuiet       = "--quiet"
+	FlagQuietShort  = "-q"
 )
 
 // entity types.
@@ -51,6 +53,8 @@ var (
 	AuthUser string
 	// AuthHeader is a custom Authorization header.
 	AuthHeader string
+	// QuietMode suppresses startup messages.
+	QuietMode bool
 )
 
 // RootCmd creates the root command.
