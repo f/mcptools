@@ -36,6 +36,11 @@ func parseCallArgs(cmdArgs []string) (string, []string) {
 		case (cmdArgs[i] == FlagAuthHeader) && i+1 < len(cmdArgs):
 			AuthHeader = cmdArgs[i+1]
 			i += 2
+		case (cmdArgs[i] == FlagTimeout || cmdArgs[i] == FlagTimeoutShort) && i+1 < len(cmdArgs):
+			if _, err := fmt.Sscanf(cmdArgs[i+1], "%d", &InitTimeout); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: invalid timeout value %q, using default\n", cmdArgs[i+1])
+			}
+			i += 2
 		case !entityExtracted:
 			entityName = cmdArgs[i]
 			entityExtracted = true

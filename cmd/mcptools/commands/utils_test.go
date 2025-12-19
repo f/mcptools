@@ -190,3 +190,62 @@ nested  {"key":"value"}`[1:] // remove first newline
 		})
 	}
 }
+
+func TestProcessFlagsTimeout(t *testing.T) {
+	originalTimeout := InitTimeout
+	defer func() { InitTimeout = originalTimeout }()
+
+	tests := []struct {
+		name        string
+		args        []string
+		wantArgs    []string
+		wantTimeout int
+	}{
+		{
+			name:        "default timeout",
+			args:        []string{"cmd", "arg1"},
+			wantArgs:    []string{"cmd", "arg1"},
+			wantTimeout: 10,
+		},
+		{
+			name:        "long timeout flag",
+			args:        []string{"cmd", "--timeout", "60", "arg1"},
+			wantArgs:    []string{"cmd", "arg1"},
+			wantTimeout: 60,
+		},
+		{
+			name:        "short timeout flag",
+			args:        []string{"cmd", "-t", "10", "arg1"},
+			wantArgs:    []string{"cmd", "arg1"},
+			wantTimeout: 10,
+		},
+		{
+			name:        "timeout at end",
+			args:        []string{"cmd", "arg1", "--timeout", "120"},
+			wantArgs:    []string{"cmd", "arg1"},
+			wantTimeout: 120,
+		},
+		{
+			name:        "invalid timeout keeps previous",
+			args:        []string{"cmd", "--timeout", "invalid", "arg1"},
+			wantArgs:    []string{"cmd", "arg1"},
+			wantTimeout: 10,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			InitTimeout = 10
+
+			gotArgs := ProcessFlags(tt.args)
+
+			if !reflect.DeepEqual(gotArgs, tt.wantArgs) {
+				t.Errorf("ProcessFlags() gotArgs = %v, want %v", gotArgs, tt.wantArgs)
+			}
+
+			if InitTimeout != tt.wantTimeout {
+				t.Errorf("ProcessFlags() InitTimeout = %v, want %v", InitTimeout, tt.wantTimeout)
+			}
+		})
+	}
+}
