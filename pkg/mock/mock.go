@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -212,6 +213,43 @@ func (s *Server) Start() error {
 		fmt.Fprintf(os.Stderr, "Sending response\n")
 		s.writeResponse(response)
 	}
+}
+
+// StartHTTP begins listening for HTTP requests on the specified port.
+func (s *Server) StartHTTP(port string) error {
+	s.log("HTTP mock server started, setting up routes...")
+	fmt.Fprintf(os.Stderr, "HTTP mock server started on http://localhost:%s\n", port)
+	fmt.Fprintf(os.Stderr, "JSON-RPC endpoint: http://localhost:%s/mcp\n", port)
+
+	// Check error from Close() when deferring
+	defer func() {
+		if err := s.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error closing log file: %v\n", err)
+		}
+	}()
+
+	mux := http.NewServeMux()
+	
+	// Main MCP JSON-RPC endpoint
+	mux.HandleFunc("/mcp", s.handleMCP)
+	
+	// SSE endpoint for client connections (for compatibility)
+	mux.HandleFunc("/sse", s.handleSSE)
+	
+	// Messages endpoint for JSON-RPC requests (for SSE compatibility)
+	mux.HandleFunc("/messages", s.handleMessages)
+
+	// Add a health check endpoint
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	// Start the HTTP server
+	fmt.Fprintf(os.Stderr, "Starting HTTP server on port %s...\n", port)
+	//nolint:gosec // This is a development/testing tool
+	return http.ListenAndServe(":"+port, mux)
 }
 
 // handleInitialize handles the initialize request from the client.
@@ -571,4 +609,254 @@ func RunMockServer(tools map[string]string, prompts map[string]map[string]string
 		len(tools), len(prompts), len(resources)))
 
 	return server.Start()
+}
+
+// RunMockServerHTTP creates and runs a mock MCP server with HTTP SSE transport.
+func RunMockServerHTTP(tools map[string]string, prompts map[string]map[string]string, resources map[string]map[string]string, port string) error {
+	server, err := NewServer()
+	if err != nil {
+		return fmt.Errorf("error creating server: %w", err)
+	}
+
+	// Add tools
+	for name, desc := range tools {
+		server.AddTool(name, desc)
+	}
+
+	// Add prompts
+	for name, promptInfo := range prompts {
+		desc := promptInfo["description"]
+		template := promptInfo["template"]
+		server.AddPrompt(name, desc, template)
+	}
+
+	// Add resources
+	for uri, resourceInfo := range resources {
+		desc := resourceInfo["description"]
+		content := resourceInfo["content"]
+		server.AddResource(uri, desc, content)
+	}
+
+	server.log(fmt.Sprintf("Starting HTTP mock server with %d tools, %d prompts, and %d resources on port %s",
+		len(tools), len(prompts), len(resources), port))
+
+	return server.StartHTTP(port)
+}
+
+// handleSSE handles the SSE endpoint for client connections.
+func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Cache-Control")
+
+	s.log("Client connected to SSE endpoint")
+	fmt.Fprintf(os.Stderr, "Client connected to SSE endpoint\n")
+
+	// Keep the connection alive
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			// Send keep-alive ping
+			fmt.Fprintf(w, "event: ping\ndata: {}\n\n")
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		case <-r.Context().Done():
+			s.log("SSE client disconnected")
+			fmt.Fprintf(os.Stderr, "SSE client disconnected\n")
+			return
+		}
+	}
+}
+
+// handleMessages handles JSON-RPC message requests.
+func (s *Server) handleMessages(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse JSON-RPC request
+	var request struct {
+		Method  string         `json:"method"`
+		Params  map[string]any `json:"params,omitempty"`
+		JSONRPC string         `json:"jsonrpc"`
+		ID      int            `json:"id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.log(fmt.Sprintf("Error decoding HTTP request: %v", err))
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Log the incoming request
+	s.logJSON("Received HTTP request", request)
+	fmt.Fprintf(os.Stderr, "Received HTTP request: %s (ID: %d)\n", request.Method, request.ID)
+	s.id = request.ID
+
+	// Handle notifications
+	if request.Method == "notifications/initialized" {
+		fmt.Fprintf(os.Stderr, "Received initialization notification\n")
+		s.log("Received initialization notification")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		return
+	}
+
+	var response any
+	var err error
+
+	// Handle requests using existing logic
+	switch request.Method {
+	case "initialize":
+		response = s.handleInitialize(request.Params)
+	case "tools/list":
+		response = s.handleToolsList()
+	case "tools/call":
+		response, err = s.handleToolCall(request.Params)
+	case "resources/list":
+		response = s.handleResourcesList()
+	case "resources/read":
+		response, err = s.handleResourceRead(request.Params)
+	case "prompts/list":
+		response = s.handlePromptsList()
+	case "prompts/get":
+		response, err = s.handlePromptGet(request.Params)
+	default:
+		err = fmt.Errorf("method not found")
+	}
+
+	// Prepare JSON-RPC response
+	w.Header().Set("Content-Type", "application/json")
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error handling HTTP request: %v\n", err)
+		s.log(fmt.Sprintf("Error handling HTTP request: %v", err))
+		
+		errorResponse := map[string]any{
+			"jsonrpc": "2.0",
+			"id":      request.ID,
+			"error": map[string]any{
+				"code":    -32601,
+				"message": err.Error(),
+			},
+		}
+		
+		w.WriteHeader(http.StatusOK) // JSON-RPC errors are still HTTP 200
+		json.NewEncoder(w).Encode(errorResponse)
+		return
+	}
+
+	// Send successful response
+	successResponse := map[string]any{
+		"jsonrpc": "2.0",
+		"id":      request.ID,
+		"result":  response,
+	}
+
+	fmt.Fprintf(os.Stderr, "Sending HTTP response\n")
+	s.logJSON("Sending HTTP response", successResponse)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(successResponse)
+}
+
+// handleMCP handles direct JSON-RPC requests to the /mcp endpoint.
+func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse JSON-RPC request
+	var request struct {
+		Method  string         `json:"method"`
+		Params  map[string]any `json:"params,omitempty"`
+		JSONRPC string         `json:"jsonrpc"`
+		ID      int            `json:"id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.log(fmt.Sprintf("Error decoding MCP request: %v", err))
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Log the incoming request
+	s.logJSON("Received MCP request", request)
+	fmt.Fprintf(os.Stderr, "Received MCP request: %s (ID: %d)\n", request.Method, request.ID)
+	s.id = request.ID
+
+	// Handle notifications
+	if request.Method == "notifications/initialized" {
+		fmt.Fprintf(os.Stderr, "Received initialization notification\n")
+		s.log("Received initialization notification")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		return
+	}
+
+	var response any
+	var err error
+
+	// Handle requests using existing logic
+	switch request.Method {
+	case "initialize":
+		response = s.handleInitialize(request.Params)
+	case "tools/list":
+		response = s.handleToolsList()
+	case "tools/call":
+		response, err = s.handleToolCall(request.Params)
+	case "resources/list":
+		response = s.handleResourcesList()
+	case "resources/read":
+		response, err = s.handleResourceRead(request.Params)
+	case "prompts/list":
+		response = s.handlePromptsList()
+	case "prompts/get":
+		response, err = s.handlePromptGet(request.Params)
+	default:
+		err = fmt.Errorf("method not found")
+	}
+
+	// Prepare JSON-RPC response
+	w.Header().Set("Content-Type", "application/json")
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error handling MCP request: %v\n", err)
+		s.log(fmt.Sprintf("Error handling MCP request: %v", err))
+		
+		errorResponse := map[string]any{
+			"jsonrpc": "2.0",
+			"id":      request.ID,
+			"error": map[string]any{
+				"code":    -32601,
+				"message": err.Error(),
+			},
+		}
+		
+		w.WriteHeader(http.StatusOK) // JSON-RPC errors are still HTTP 200
+		json.NewEncoder(w).Encode(errorResponse)
+		return
+	}
+
+	// Send successful response
+	successResponse := map[string]any{
+		"jsonrpc": "2.0",
+		"id":      request.ID,
+		"result":  response,
+	}
+
+	fmt.Fprintf(os.Stderr, "Sending MCP response\n")
+	s.logJSON("Sending MCP response", successResponse)
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(successResponse)
 }

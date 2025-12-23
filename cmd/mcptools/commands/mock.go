@@ -10,6 +10,8 @@ import (
 
 // MockCmd creates the mock command.
 func MockCmd() *cobra.Command {
+	var port string
+	
 	cmd := &cobra.Command{
 		Use:   "mock [type] [name] [description] [content]...",
 		Short: "Create a mock MCP server with tools, prompts, and resources",
@@ -31,11 +33,20 @@ Available types:
 - prompt <name> <description> <template>
 - resource <uri> <description> <content>
 
-Example:
+Transport options:
+- Default: stdin/stdout (stdio transport)
+- --port <port>: HTTP SSE transport on specified port
+
+Examples:
+  # Stdio transport (default)
   mcp mock tool hello_world "when user says hello world, run this tool"
-  mcp mock tool hello_world "A greeting tool" \
+
+  # HTTP transport
+  mcp mock --port 3000 tool hello_world "A greeting tool" \
          prompt welcome "A welcome prompt" "Hello {{name}}, welcome to {{location}}!" \
-         resource docs:readme "Documentation" "# Mock MCP Server\nThis is a mock server"`,
+         resource docs:readme "Documentation" "# Mock MCP Server\nThis is a mock server"
+
+  # Then connect to http://localhost:3000/sse`,
 		Args: cobra.MinimumNArgs(2),
 		Run: func(_ *cobra.Command, args []string) {
 			tools := make(map[string]string)
@@ -111,16 +122,32 @@ Example:
 				os.Exit(1)
 			}
 
-			fmt.Fprintf(os.Stderr, "Starting mock MCP server with %d tool(s), %d prompt(s), and %d resource(s)\n",
-				len(tools), len(prompts), len(resources))
-			fmt.Fprintf(os.Stderr, "Use Ctrl+C to exit\n")
+			if port != "" {
+				fmt.Fprintf(os.Stderr, "Starting HTTP mock MCP server with %d tool(s), %d prompt(s), and %d resource(s) on port %s\n",
+					len(tools), len(prompts), len(resources), port)
+				fmt.Fprintf(os.Stderr, "JSON-RPC endpoint: http://localhost:%s/mcp\n", port)
+				fmt.Fprintf(os.Stderr, "SSE endpoint: http://localhost:%s/sse (for SSE-compatible clients)\n", port)
+				fmt.Fprintf(os.Stderr, "Health check: http://localhost:%s/health\n", port)
+				fmt.Fprintf(os.Stderr, "Use Ctrl+C to exit\n")
 
-			if err := mock.RunMockServer(tools, prompts, resources); err != nil {
-				fmt.Fprintf(os.Stderr, "Error running mock server: %v\n", err)
-				os.Exit(1)
+				if err := mock.RunMockServerHTTP(tools, prompts, resources, port); err != nil {
+					fmt.Fprintf(os.Stderr, "Error running HTTP mock server: %v\n", err)
+					os.Exit(1)
+				}
+			} else {
+				fmt.Fprintf(os.Stderr, "Starting mock MCP server with %d tool(s), %d prompt(s), and %d resource(s)\n",
+					len(tools), len(prompts), len(resources))
+				fmt.Fprintf(os.Stderr, "Use Ctrl+C to exit\n")
+
+				if err := mock.RunMockServer(tools, prompts, resources); err != nil {
+					fmt.Fprintf(os.Stderr, "Error running mock server: %v\n", err)
+					os.Exit(1)
+				}
 			}
 		},
 	}
+
+	cmd.Flags().StringVar(&port, "port", "", "Start HTTP server on specified port (e.g., 3000). If not specified, uses stdio transport.")
 
 	return cmd
 }
