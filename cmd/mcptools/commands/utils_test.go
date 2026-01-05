@@ -190,3 +190,121 @@ nested  {"key":"value"}`[1:] // remove first newline
 		})
 	}
 }
+
+func TestParseConfigPrefix(t *testing.T) {
+	tests := []struct {
+		name             string
+		serverSpec       string
+		wantConfigSource string
+		wantServerName   string
+		wantHasPrefix    bool
+	}{
+		{
+			name:             "claude-code prefix",
+			serverSpec:       "claude-code:firecrawl",
+			wantConfigSource: "claude-code",
+			wantServerName:   "firecrawl",
+			wantHasPrefix:    true,
+		},
+		{
+			name:             "claude-desktop prefix",
+			serverSpec:       "claude-desktop:playwright",
+			wantConfigSource: "claude-desktop",
+			wantServerName:   "playwright",
+			wantHasPrefix:    true,
+		},
+		{
+			name:             "cursor prefix",
+			serverSpec:       "cursor:myserver",
+			wantConfigSource: "cursor",
+			wantServerName:   "myserver",
+			wantHasPrefix:    true,
+		},
+		{
+			name:             "vscode prefix",
+			serverSpec:       "vscode:server",
+			wantConfigSource: "vscode",
+			wantServerName:   "server",
+			wantHasPrefix:    true,
+		},
+		{
+			name:             "vscode-insiders prefix",
+			serverSpec:       "vscode-insiders:server",
+			wantConfigSource: "vscode-insiders",
+			wantServerName:   "server",
+			wantHasPrefix:    true,
+		},
+		{
+			name:             "windsurf prefix",
+			serverSpec:       "windsurf:server",
+			wantConfigSource: "windsurf",
+			wantServerName:   "server",
+			wantHasPrefix:    true,
+		},
+		{
+			name:             "case insensitive prefix",
+			serverSpec:       "Claude-Code:firecrawl",
+			wantConfigSource: "claude-code",
+			wantServerName:   "firecrawl",
+			wantHasPrefix:    true,
+		},
+		{
+			name:             "no prefix - simple alias",
+			serverSpec:       "myalias",
+			wantConfigSource: "",
+			wantServerName:   "myalias",
+			wantHasPrefix:    false,
+		},
+		{
+			name:             "unknown prefix treated as no prefix",
+			serverSpec:       "unknown:server",
+			wantConfigSource: "",
+			wantServerName:   "unknown:server",
+			wantHasPrefix:    false,
+		},
+		{
+			name:             "HTTP URL not treated as prefix",
+			serverSpec:       "http://localhost:8080",
+			wantConfigSource: "",
+			wantServerName:   "http://localhost:8080",
+			wantHasPrefix:    false,
+		},
+		{
+			name:             "HTTPS URL not treated as prefix",
+			serverSpec:       "https://example.com",
+			wantConfigSource: "",
+			wantServerName:   "https://example.com",
+			wantHasPrefix:    false,
+		},
+		{
+			name:             "server name with colons",
+			serverSpec:       "claude-code:server:with:colons",
+			wantConfigSource: "claude-code",
+			wantServerName:   "server:with:colons",
+			wantHasPrefix:    true,
+		},
+		{
+			name:             "empty string",
+			serverSpec:       "",
+			wantConfigSource: "",
+			wantServerName:   "",
+			wantHasPrefix:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			configSource, serverName, hasPrefix := ParseConfigPrefix(tt.serverSpec)
+
+			if configSource != tt.wantConfigSource {
+				t.Errorf("ParseConfigPrefix() configSource = %q, want %q", configSource, tt.wantConfigSource)
+			}
+			if serverName != tt.wantServerName {
+				t.Errorf("ParseConfigPrefix() serverName = %q, want %q", serverName, tt.wantServerName)
+			}
+			if hasPrefix != tt.wantHasPrefix {
+				t.Errorf("ParseConfigPrefix() hasPrefix = %v, want %v", hasPrefix, tt.wantHasPrefix)
+			}
+		})
+	}
+}
