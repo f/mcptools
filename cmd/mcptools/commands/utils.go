@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -27,6 +28,77 @@ var (
 // IsHTTP returns true if the string is a valid HTTP URL.
 func IsHTTP(str string) bool {
 	return strings.HasPrefix(str, "http://") || strings.HasPrefix(str, "https://") || strings.HasPrefix(str, "localhost:")
+}
+
+// validConfigPrefixes defines the valid config source prefixes.
+var validConfigPrefixes = map[string]bool{
+	"vscode":          true,
+	"vscode-insiders": true,
+	"windsurf":        true,
+	"cursor":          true,
+	"claude-desktop":  true,
+	"claude-code":     true,
+}
+
+// ParseConfigPrefix parses a config source prefix from a server specification.
+// Examples:
+//
+//	"claude-code:firecrawl" -> ("claude-code", "firecrawl", true)
+//	"cursor:myserver"       -> ("cursor", "myserver", true)
+//	"myalias"               -> ("", "myalias", false)
+func ParseConfigPrefix(serverSpec string) (configSource, serverName string, hasPrefix bool) {
+	if idx := strings.Index(serverSpec, ":"); idx > 0 {
+		prefix := serverSpec[:idx]
+		if validConfigPrefixes[strings.ToLower(prefix)] {
+			return strings.ToLower(prefix), serverSpec[idx+1:], true
+		}
+	}
+	return "", serverSpec, false
+}
+
+// GetServerFromConfigSource loads a server configuration from a config source.
+// Returns the server config or an error if not found.
+func GetServerFromConfigSource(configSource, serverName string) (*ServerConfig, error) {
+	// Load the configs file to get the alias path
+	configs, err := loadConfigsFile()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load configs: %w", err)
+	}
+
+	// Get the config alias
+	aliasConfig, ok := configs.Aliases[configSource]
+	if !ok {
+		return nil, fmt.Errorf("config source '%s' not found", configSource)
+	}
+
+	// Expand and read the config file
+	configPath := expandPath(aliasConfig.Path)
+
+	// Get servers using existing function based on JSONPath
+	var servers []ServerConfig
+	var scanErr error
+
+	if strings.Contains(aliasConfig.JSONPath, "mcp.servers") {
+		servers, scanErr = scanVSCodeConfig(configPath, aliasConfig.Source)
+	} else {
+		servers, scanErr = scanMCPServersConfig(configPath, aliasConfig.Source)
+	}
+
+	if scanErr != nil {
+		return nil, fmt.Errorf("failed to scan config: %w", scanErr)
+	}
+
+	// Find the specific server
+	var available []string
+	for _, server := range servers {
+		if server.Name == serverName {
+			return &server, nil
+		}
+		available = append(available, server.Name)
+	}
+
+	return nil, fmt.Errorf("server '%s' not found in %s\nAvailable servers: %s",
+		serverName, configSource, strings.Join(available, ", "))
 }
 
 // buildAuthHeader builds an Authorization header from the available auth options.
@@ -92,7 +164,33 @@ var CreateClientFunc = func(args []string, _ ...client.ClientOption) (*client.Cl
 		return nil, ErrCommandRequired
 	}
 
-	// Check if the first argument is an alias
+	// Check for config source prefix (e.g., "claude-code:firecrawl")
+	if len(args) == 1 {
+		configSource, serverName, hasPrefix := ParseConfigPrefix(args[0])
+		if hasPrefix {
+			serverConfig, err := GetServerFromConfigSource(configSource, serverName)
+			if err != nil {
+				return nil, err
+			}
+
+			// Build args from server config
+			if serverConfig.URL != "" {
+				// URL-based server (SSE/HTTP)
+				args = []string{serverConfig.URL}
+				// Note: Headers for SSE servers are not yet supported
+			} else {
+				// Stdio-based server
+				args = append([]string{serverConfig.Command}, serverConfig.Args...)
+			}
+
+			// Apply environment variables (errors are ignored as setenv rarely fails)
+			for key, value := range serverConfig.Env {
+				_ = os.Setenv(key, value)
+			}
+		}
+	}
+
+	// Check if the first argument is an alias (fallback if no prefix match)
 	if len(args) == 1 {
 		server, found := alias.GetServerCommand(args[0])
 		if found {
