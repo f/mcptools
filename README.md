@@ -173,6 +173,12 @@ mcp tools http://localhost:3000
 # Examples with remote servers
 mcp tools https://api.example.com/mcp
 mcp tools https://ne.tools
+
+# You.com MCP servers for web search and research
+mcp tools https://api.you.com/mcp?profile=free                    # Free web search (no auth)
+mcp tools https://api.you.com/mcp                                 # Full search suite (requires YDC_API_KEY)
+mcp tools https://api.you.com/mcp?tools=you-finance               # Finance research tools
+mcp tools https://you.com/docs/_mcp/server                       # You.com documentation search
 ```
 
 _Benefits of Streamable HTTP:_
@@ -432,6 +438,12 @@ MCP Tools allows you to save and reuse server commands with friendly aliases:
 # Add a new server alias
 mcp alias add myfs npx -y @modelcontextprotocol/server-filesystem ~/
 
+# Add You.com MCP server aliases for easy access
+mcp alias add you-free https://api.you.com/mcp?profile=free
+mcp alias add you-search https://api.you.com/mcp
+mcp alias add you-finance https://api.you.com/mcp?tools=you-finance
+mcp alias add you-docs https://you.com/docs/_mcp/server
+
 # List all registered server aliases
 mcp alias list
 
@@ -441,6 +453,11 @@ mcp alias remove myfs
 # Use an alias with any MCP command
 mcp tools myfs
 mcp call read_file --params '{"path":"README.md"}' myfs
+
+# Use You.com aliases for web search and research
+mcp tools you-free
+mcp call you-search --params '{"query":"latest TypeScript features"}' you-search
+mcp call you-search --params '{"query":"AAPL financial metrics"}' you-finance
 ```
 
 Server aliases are stored in `$HOME/.mcpt/aliases.json` and provide a convenient way to work with commonly used MCP servers without typing long commands repeatedly.
@@ -464,6 +481,12 @@ mcp configs view vscode
 # Add or update a server in a configuration
 mcp configs set vscode my-server npm run mcp-server
 mcp configs set cursor my-api https://api.example.com/mcp --headers "Authorization=Bearer token"
+
+# Add You.com MCP servers to your coding environments
+mcp configs set vscode,cursor,claude-desktop you-search https://api.you.com/mcp?profile=free
+mcp configs set vscode you-research https://api.you.com/mcp --headers "Authorization=Bearer YDC_API_KEY"
+mcp configs set cursor you-finance https://api.you.com/mcp?tools=you-finance --headers "Authorization=Bearer YDC_API_KEY"
+mcp configs set claude-desktop you-docs https://you.com/docs/_mcp/server
 
 # Add to multiple configurations at once
 mcp configs set vscode,cursor,claude-desktop my-server npm run mcp-server
@@ -759,6 +782,64 @@ This makes your configurations even more concise and easier to maintain.
 - Guard operations are logged to `~/.mcpt/logs/guard.log`
 - The log includes all requests, responses, and filtering decisions
 - Use `tail -f ~/.mcpt/logs/guard.log` to monitor activity in real-time
+
+## You.com MCP Integration
+
+You.com provides powerful MCP servers for web search, content extraction, and research. These servers integrate seamlessly with MCPTools and can be easily configured across all your coding environments.
+
+### Available You.com MCP Servers
+
+| Server URL | Description | Authentication | Use Case |
+|------------|-------------|----------------|----------|
+| `https://api.you.com/mcp?profile=free` | Free web search | None required | Basic search without API key |
+| `https://api.you.com/mcp` | Full search suite | YDC_API_KEY required | Web search, content extraction, citations |
+| `https://api.you.com/mcp?tools=you-finance` | Finance research | YDC_API_KEY required | Stock data, financial metrics, market research |
+| `https://you.com/docs/_mcp/server` | Documentation search | None required | Search You.com's documentation |
+
+### Quick Setup
+
+Add You.com servers to your development environment:
+
+```bash
+# Set up aliases for easy access
+mcp alias add you-free https://api.you.com/mcp?profile=free
+mcp alias add you-search https://api.you.com/mcp
+mcp alias add you-finance https://api.you.com/mcp?tools=you-finance
+mcp alias add you-docs https://you.com/docs/_mcp/server
+
+# Configure in your coding tools (requires YDC_API_KEY for authenticated endpoints)
+mcp configs set vscode,cursor,claude-desktop you-search https://api.you.com/mcp?profile=free
+mcp configs set vscode you-research https://api.you.com/mcp --headers "Authorization=Bearer YOUR_YDC_API_KEY"
+```
+
+### Usage Examples
+
+```bash
+# List available tools
+mcp tools you-free
+
+# Search the web
+mcp call you-search --params '{"query":"TypeScript best practices 2026"}' you-free
+
+# Get financial data (authenticated server)
+mcp call you-search --params '{"query":"AAPL quarterly earnings"}' you-finance
+
+# Search documentation
+mcp call search --params '{"query":"MCP server setup"}' you-docs
+
+# Interactive shell with You.com server
+mcp shell you-free
+```
+
+### Environment Variables
+
+For authenticated You.com MCP servers, set your API key:
+
+```bash
+export YDC_API_KEY="your_api_key_here"
+```
+
+Get your API key at [https://api.you.com/dashboard?utm_source=mcptools&utm_medium=integration&utm_campaign=mcp-servers](https://api.you.com/dashboard?utm_source=mcptools&utm_medium=integration&utm_campaign=mcp-servers)
 
 ## Examples
 
