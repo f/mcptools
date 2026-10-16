@@ -146,6 +146,21 @@ Uses stdin/stdout to communicate with an MCP server via JSON-RPC 2.0. This is us
 mcp tools npx -y @modelcontextprotocol/server-filesystem ~
 ```
 
+For `tools`, `resources`, `prompts`, and `guard`, put `--` before the server
+command when its arguments overlap with MCP Tools options. All arguments after
+the first standalone `--` are passed unchanged to the server, including any
+additional `--`. Put MCP Tools options before the separator:
+
+```bash
+mcp tools -f json -- python3 server.py -f settings.yaml --transport stdio
+mcp resources -- python3 server.py --format yaml
+mcp prompts -- python3 server.py --server-logs
+mcp guard --allow tools:read_* -- python3 server.py --allow local
+```
+
+Without a separator, MCP Tools options can still appear after the server command
+as before.
+
 #### HTTP SSE Transport
 
 Uses HTTP and Server-Sent Events (SSE) to communicate with an MCP server via JSON-RPC 2.0. This is useful for connecting to remote servers that implement the legacy MCP protocol. Transport is automatically detected when the URL ends with `/sse`.

@@ -123,6 +123,9 @@ func extractPatterns(args []string) (map[string][]string, map[string][]string, [
 	i := 0
 	for i < len(args) {
 		switch {
+		case args[i] == "--":
+			// Preserve the separator for the subsequent ProcessFlags pass.
+			return allowPatterns, denyPatterns, append(cmdArgs, args[i:]...)
 		case (args[i] == FlagAllow || args[i] == FlagAllowShort) && i+1 < len(args):
 			// Process --allow flag
 			patternsStr := args[i+1]

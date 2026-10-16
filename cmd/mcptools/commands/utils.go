@@ -186,6 +186,7 @@ var CreateClientFunc = func(args []string, _ ...client.ClientOption) (*client.Cl
 // ProcessFlags processes command line flags, sets the format option, and returns the remaining
 // arguments. Supported format options: json, pretty, and table.
 // Supported transport options: http and sse.
+// A standalone -- ends flag processing; subsequent arguments are returned unchanged.
 //
 // For example, if the input arguments are ["tools", "--format", "pretty", "npx", "-y",
 // "@modelcontextprotocol/server-filesystem", "~"], it would return ["npx", "-y",
@@ -196,6 +197,8 @@ func ProcessFlags(args []string) []string {
 	i := 0
 	for i < len(args) {
 		switch {
+		case args[i] == "--":
+			return append(parsedArgs, args[i+1:]...)
 		case (args[i] == FlagFormat || args[i] == FlagFormatShort) && i+1 < len(args):
 			FormatOption = args[i+1]
 			i += 2
