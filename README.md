@@ -181,6 +181,24 @@ _Benefits of Streamable HTTP:_
 - **Flexible Responses**: Supports both streaming and direct JSON responses
 - **Modern Protocol**: Uses the latest MCP transport specification
 
+#### Custom HTTP Headers
+
+Use repeatable `--headers NAME=VALUE` options with `tools`, `resources`, `prompts`,
+or `call` to send custom headers to HTTP and SSE servers:
+
+```bash
+mcp tools https://example.com/mcp --headers X-Project=demo
+mcp tools --transport sse https://example.com/sse --headers X-Project=demo --headers X-Mode=preview
+mcp call lookup https://example.com/mcp --headers X-Project=demo
+```
+
+Values can contain `=`. Repeated header names are case-insensitive, and the last
+value wins. Explicit `--auth-user` and `--auth-header` options take precedence
+over a custom `Authorization` header. Header names and values are validated
+before connecting. With custom headers enabled, requests to a different origin
+(scheme, host, or port) are rejected, including redirects and SSE message endpoints.
+Supply sensitive values at runtime rather than committing them to scripts.
+
 ### Output Formats
 
 MCP Tools supports three output formats to accommodate different needs:

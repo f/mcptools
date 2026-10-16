@@ -19,6 +19,7 @@ const (
 	FlagTransport   = "--transport"
 	FlagAuthUser    = "--auth-user"
 	FlagAuthHeader  = "--auth-header"
+	FlagHeaders     = "--headers"
 )
 
 // entity types.
@@ -51,6 +52,8 @@ var (
 	AuthUser string
 	// AuthHeader is a custom Authorization header.
 	AuthHeader string
+	// CustomHTTPHeaders contains repeatable NAME=VALUE HTTP header options.
+	CustomHTTPHeaders []string
 )
 
 // RootCmd creates the root command.
@@ -68,6 +71,7 @@ It allows you to discover and call tools, list resources, and interact with MCP-
 	cmd.PersistentFlags().StringVar(&TransportOption, "transport", "http", "HTTP transport type (http, sse)")
 	cmd.PersistentFlags().StringVar(&AuthUser, "auth-user", "", "Basic authentication in username:password format")
 	cmd.PersistentFlags().StringVar(&AuthHeader, "auth-header", "", "Custom Authorization header (e.g., 'Bearer token' or 'Basic base64credentials')")
+	cmd.PersistentFlags().StringArrayVar(&CustomHTTPHeaders, "headers", nil, "Custom HTTP header as NAME=VALUE (repeatable)")
 
 	return cmd
 }

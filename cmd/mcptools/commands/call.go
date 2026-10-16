@@ -36,6 +36,9 @@ func parseCallArgs(cmdArgs []string) (string, []string) {
 		case (cmdArgs[i] == FlagAuthHeader) && i+1 < len(cmdArgs):
 			AuthHeader = cmdArgs[i+1]
 			i += 2
+		case cmdArgs[i] == FlagHeaders && i+1 < len(cmdArgs):
+			CustomHTTPHeaders = append(CustomHTTPHeaders, cmdArgs[i+1])
+			i += 2
 		case !entityExtracted:
 			entityName = cmdArgs[i]
 			entityExtracted = true

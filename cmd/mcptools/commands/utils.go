@@ -118,21 +118,31 @@ var CreateClientFunc = func(args []string, _ ...client.ClientOption) (*client.Cl
 		// Create headers map with required Accept header for MCP protocol
 		headers := make(map[string]string)
 
-		// Add authentication header if provided
+		// Add Accept header required by MCP streamable HTTP and SSE transports
+		// Many MCP servers require clients to accept both JSON responses and event streams
+		headers["Accept"] = "application/json, text/event-stream"
+		if err = addCustomHTTPHeaders(headers, CustomHTTPHeaders); err != nil {
+			return nil, err
+		}
+		// Explicit authentication options take precedence over custom Authorization.
 		if authHeader != "" {
 			headers["Authorization"] = authHeader
 		}
 
-		// Add Accept header required by MCP streamable HTTP and SSE transports
-		// Many MCP servers require clients to accept both JSON responses and event streams
-		headers["Accept"] = "application/json, text/event-stream"
-
 		if TransportOption == TransportSSE {
 			// For SSE transport, use transport.ClientOption
-			c, err = client.NewSSEMCPClient(cleanURL, transport.WithHeaders(headers))
+			options := []transport.ClientOption{transport.WithHeaders(headers)}
+			if len(CustomHTTPHeaders) > 0 {
+				options = append(options, transport.WithHTTPClient(customHeaderClient(cleanURL, headers)))
+			}
+			c, err = client.NewSSEMCPClient(cleanURL, options...)
 		} else {
 			// For StreamableHTTP transport, use transport.StreamableHTTPCOption
-			c, err = client.NewStreamableHttpClient(cleanURL, transport.WithHTTPHeaders(headers))
+			options := []transport.StreamableHTTPCOption{transport.WithHTTPHeaders(headers)}
+			if len(CustomHTTPHeaders) > 0 {
+				options = append(options, transport.WithHTTPBasicClient(customHeaderClient(cleanURL, headers)))
+			}
+			c, err = client.NewStreamableHttpClient(cleanURL, options...)
 		}
 
 		if err != nil {
@@ -210,6 +220,9 @@ func ProcessFlags(args []string) []string {
 			i += 2
 		case args[i] == FlagAuthHeader && i+1 < len(args):
 			AuthHeader = args[i+1]
+			i += 2
+		case args[i] == FlagHeaders && i+1 < len(args):
+			CustomHTTPHeaders = append(CustomHTTPHeaders, args[i+1])
 			i += 2
 		default:
 			parsedArgs = append(parsedArgs, args[i])
