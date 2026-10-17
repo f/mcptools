@@ -38,6 +38,7 @@
   - [Guard Mode](#guard-mode)
 - [Examples](#examples)
   - [Basic Usage](#basic-usage)
+  - [Web Search and Page Fetching](#web-search-and-page-fetching)
   - [Script Integration](#script-integration)
   - [Debugging](#debugging)
 - [Contributing](#contributing)
@@ -826,6 +827,24 @@ mcp tools http://legacy-server.com/sse
 
 # Example with authentication headers (when supported)
 mcp tools https://authenticated-mcp-server.com
+```
+
+### Web Search and Page Fetching
+
+Use [Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp) to search the web and retrieve page excerpts from the command line. It connects over Streamable HTTP and is free for exploration and light use, with no account or API key required. Anonymous searches use Fast mode.
+
+List the available tools and their current parameters, then search for documentation:
+
+```bash
+mcp tools https://search.parallel.ai/mcp
+
+mcp call web_search --params '{"objective":"Find the official Model Context Protocol architecture documentation.","search_queries":["Model Context Protocol architecture documentation"]}' --format pretty https://search.parallel.ai/mcp
+```
+
+Search results include source URLs and excerpts. When you need more detail, fetch a specific page, replacing the URL and objective as needed:
+
+```bash
+mcp call web_fetch --params '{"urls":["https://modelcontextprotocol.io/docs/learn/architecture"],"objective":"Summarize the roles of MCP hosts, clients, and servers."}' --format pretty https://search.parallel.ai/mcp
 ```
 
 ### Script Integration
