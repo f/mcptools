@@ -175,11 +175,10 @@ mcp tools https://api.example.com/mcp
 mcp tools https://ne.tools
 ```
 
-_Benefits of Streamable HTTP:_
-- **Session Management**: Supports stateful connections with session IDs
-- **Resumability**: Can reconnect and resume interrupted sessions (when supported by server)
-- **Flexible Responses**: Supports both streaming and direct JSON responses
-- **Modern Protocol**: Uses the latest MCP transport specification
+_Streamable HTTP compatibility notes:_
+- **Response formats**: An HTTP POST can receive a JSON response or a request-scoped SSE stream, depending on the server.
+- **Protocol revisions**: Earlier MCP revisions allowed protocol-level session IDs and SSE stream resumption. The [July 28, 2026 specification](https://modelcontextprotocol.io/specification/2026-07-28/changelog) removed `Mcp-Session-Id` and SSE resumption using event IDs / `Last-Event-ID`. A broken response stream is not resumed; retrying requires a new request with a new request ID.
+- **Implementation compatibility**: This repository currently pins `github.com/mark3labs/mcp-go` at `v0.34.0` in `go.mod`. Do not assume this CLI implements the July 2026 revision without testing it against a compatible server.
 
 ### Output Formats
 
